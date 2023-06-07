@@ -1,0 +1,20 @@
+name: Pull request title lint
+on:
+  pull_request:
+    branches: [main, next]
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+      - name: Install Dependencies
+        run: npm i
+      - name: Lint title
+        run: node PRLinter/index.js --title='${{ github.event.pull_request.title }}'
