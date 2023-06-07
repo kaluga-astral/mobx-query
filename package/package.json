@@ -1,12 +1,12 @@
 {
-  "name": "@astral/mobx-queru",
+  "name": "@astral/mobx-query",
   "version": "0.0.1",
   "browser": "./src/index.ts",
   "main": "./src/index.ts",
   "scripts": {
     "build": "node pack",
     "publish": "npm publish ./lib",
-    "tests": "vitest run",
+    "tests": "vitest run --passWithNoTests",
     "tests:ci": "vitest run --reporter=junit --outputFile.junit=junit.xml",
     "lint:types": "tsc --noEmit",
     "lint": "eslint --fix --quiet",

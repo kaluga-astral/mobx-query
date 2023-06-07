@@ -1,3 +1,3 @@
-import { createVitestConfig } from '../vitest.config';
+import config from '../vitest.config';
 
-export default createVitestConfig({ useJsDOM: false });
+export default config;
