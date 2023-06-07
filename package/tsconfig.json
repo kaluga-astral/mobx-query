@@ -6,6 +6,7 @@
     "./*.js",
     "./*.ts"
   ],
+  "types": ["lodash.isequal"],
   "exclude": [
     "lib"
   ]
