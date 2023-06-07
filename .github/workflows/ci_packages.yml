@@ -1,0 +1,66 @@
+name: CI for packages
+
+on:
+  pull_request:
+    branches: [main, next]
+
+jobs:
+  lint:
+    name: Running linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: npm i
+      - name: Run eslint
+        run: npm run lint
+
+  lintTypes:
+    name: Running types linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: npm i
+      - name: Run tsc
+        run: npm run lint:types
+
+  test:
+    name: Running tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: npm i
+
+      - name: Run vitest
+        env:
+          CI: true
+        run: npm run tests:ci --workspaces --if-present
+
+      - name: Publish Test Report
+        uses: mikepenz/action-junit-report@v3
+        if: always()
+        with:
+          report_paths: '**/junit.xml'
+

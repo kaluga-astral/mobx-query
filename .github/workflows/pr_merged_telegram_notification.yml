@@ -1,0 +1,31 @@
+name: pull request merged notification
+on:
+  pull_request:
+    types: [closed]
+    branches: [main, next]
+
+jobs:
+  fetch:
+    name: fetch
+    uses: ./.github/workflows/fetch_pr_info.yml
+    if: github.event.pull_request.merged == true && github.event.pull_request.user.login != 'github-actions[bot]'
+    with:
+      pr_url: ${{ github.event.pull_request.url }}
+
+  notify:
+    name: notify
+    needs: fetch
+    runs-on: ubuntu-latest
+    steps:
+      - name: send telegram message on PR
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            🎉🎉🎉 ${{ github.event.repository.name }}
+            ${{ github.event.pull_request.merged_by.login }} смержил PR от ${{ fromJson(SECRETS.TELEGRAM_ACCOUNTS)[fromJSON(needs.fetch.outputs.result).user.login] }}
+            
+            ${{ fromJSON(needs.fetch.outputs.result).title }}
+            
+            ${{ fromJSON(needs.fetch.outputs.result).html_url }}

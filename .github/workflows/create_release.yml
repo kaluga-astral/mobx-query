@@ -1,0 +1,95 @@
+name: 'Create release'
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # Устанавливает should_skip в true, если одновременно запускается два релиза
+  checkConcurrentRelease:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          concurrent_skipping: 'always'
+          skip_after_successful_duplicate: 'true'
+
+  releasePackages:
+    needs: checkConcurrentRelease
+    if: needs.pre_job.outputs.should_skip != 'true'
+    name: Release packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 18.x
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: Install dependencies
+        run: npm i
+
+      - name: Generate release
+        id: semantic_release
+        # Устанавливает в env NEXT_VERSION и CURRENT_VERSION
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build всех пакетов
+      - name: Build @astral/mobx-query
+        if: env.CURRENT_VERSION != env.NEXT_VERSION
+        # PACKAGE_VERSION устанавливается в semantic-release.config.js
+        run: npm run build --workspace=@astral/mobx-query
+        env:
+          RELEASE_TAG: ${{ env.NEXT_VERSION }}
+
+      # Паблишинг всех пакетов
+      - name: Publish @astral/mobx-query
+        if: env.CURRENT_VERSION != env.NEXT_VERSION
+        run: npm publish ./package/lib
+        env:
+          NPM_PUBLISH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+
+      # Нотификация в telegram
+      - name: send telegram message on release
+        if: env.CURRENT_VERSION != env.NEXT_VERSION
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_RELEASE_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: html
+          message: |
+            🚀 <b>Была опубликована новая версия пакета @astral/mobx-query !</b>
+
+            📦  @astral/mobx-query: ${{ env.NEXT_VERSION }}
+
+            ⚡️ <a href="https://github.com/kaluga-astral/${{ github.event.repository.name }}/releases/tag/v${{ env.NEXT_VERSION }}">Changelog</a>
+
+            ⚡️ Проявив инициативу и взяв доступную задачу с доски <a href="https://astraltrack.atlassian.net/jira/software/c/projects/UIKIT/boards/276">Frontend.Shared</a>, вы развиваете frontend в компании.
+
+      # Отказ релиза, если workflow упал. При откате: удаляется git tag + удаляется github release. Сделано для того, чтобы можно было перезапускать упавшие релизы
+      - uses: dev-drprasad/delete-tag-and-release@v0.2.1
+        if: failure()
+        with:
+          tag_name: v${{ env.NEXT_VERSION }}
+          delete_release: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Нотификация в telegram, если release упал
+      - name: send telegram message on fail release
+        if: failure()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ‼️Ошибка релиза пакетов версии ${{ env.NEXT_VERSION }}
+            
+            <a href="https://github.com/kaluga-astral/${{ github.event.repository.name }}/actions">Перезапустите</a> release
+
