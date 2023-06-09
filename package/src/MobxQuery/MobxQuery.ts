@@ -63,9 +63,9 @@ type CreateInfiniteQueryParams<TResult, TError> = InfiniteQueryParams<
 /**
  * @description внутриний тип кешируемого стора
  */
-type CachedQueryStore =
-  | Query<unknown, unknown>
-  | InfiniteQuery<unknown, unknown>;
+type CachedQueryStore<TResult, TError> =
+  | Query<TResult, TError>
+  | InfiniteQuery<TResult, TError>;
 
 /**
  * @description параметры кешируемого стора
@@ -77,14 +77,6 @@ type StoreParams<TResult, TError> =
   | (InfiniteQueryParams<TResult, TError> & {
       executor: InfiniteExecutor<TResult>;
     });
-
-/**
- * @description варианты кешируемого стора
- */
-enum CachedStoreTypes {
-  cacheable,
-  infinite,
-}
 
 /**
  * @description ключ для кешированя квери
@@ -103,7 +95,10 @@ export class MobxQuery {
   /**
    * @description Map соответствия хешей ключей к запомненным сторам
    */
-  private cacheableStores = new Map<KeyHash, CachedQueryStore>();
+  private cacheableStores = new Map<
+    KeyHash,
+    CachedQueryStore<unknown, unknown>
+  >();
 
   /**
    * @description стандартный обработчик ошибок, будет использован, если не передан другой
@@ -163,10 +158,9 @@ export class MobxQuery {
    * @description метод, который занимается проверкой наличия стора по ключу,
    * и если нет, создает новый, добавляет его к себе в память, и возвращает его пользователю
    */
-  private getCachedQuery = (
+  private getCachedQuery = <TResult, TError>(
     key: CacheKey[],
-    { executor, ...params }: StoreParams<unknown, unknown>,
-    type: CachedStoreTypes,
+    createStore: () => CachedQueryStore<TResult, TError>,
     fetchPolicy = this.defaultFetchPolicy,
   ) => {
     const keyHash: KeyHash = JSON.stringify(key);
@@ -175,21 +169,13 @@ export class MobxQuery {
       return this.cacheableStores.get(keyHash);
     }
 
-    let store: CachedQueryStore;
+    const store = createStore();
 
-    if (type === CachedStoreTypes.cacheable) {
-      store = new Query(
-        executor as QueryExecutor<unknown>,
-        params as QueryParams<unknown, unknown>,
-      );
-    } else {
-      store = new InfiniteQuery(
-        executor as InfiniteExecutor<unknown>,
-        params as InfiniteQueryParams<unknown, unknown>,
-      );
-    }
+    this.cacheableStores.set(
+      keyHash,
+      store as CachedQueryStore<unknown, unknown>,
+    );
 
-    this.cacheableStores.set(keyHash, store as CachedQueryStore);
     this.keys[keyHash] = key;
 
     return store;
@@ -205,14 +191,14 @@ export class MobxQuery {
   ) => {
     return this.getCachedQuery(
       key,
-      {
-        ...(params as StoreParams<unknown, unknown>),
-        onError: (params?.onError || this.defaultErrorHandler) as OnError,
-        executor,
-        enabledAutoFetch:
-          params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
-      },
-      CachedStoreTypes.cacheable,
+      () =>
+        new Query(executor, {
+          ...(params as StoreParams<unknown, unknown>),
+          onError: (params?.onError ||
+            this.defaultErrorHandler) as OnError<TError>,
+          enabledAutoFetch:
+            params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
+        }),
       params?.fetchPolicy,
     ) as Query<TResult, TError>;
   };
@@ -227,14 +213,14 @@ export class MobxQuery {
   ) => {
     return this.getCachedQuery(
       key,
-      {
-        ...(params as StoreParams<unknown, unknown>),
-        onError: (params?.onError || this.defaultErrorHandler) as OnError,
-        enabledAutoFetch:
-          params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
-        executor,
-      },
-      CachedStoreTypes.infinite,
+      () =>
+        new InfiniteQuery(executor as InfiniteExecutor<unknown>, {
+          ...(params as StoreParams<unknown, unknown>),
+          onError: (params?.onError ||
+            this.defaultErrorHandler) as OnError<TError>,
+          enabledAutoFetch:
+            params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
+        }),
       params?.fetchPolicy,
     ) as InfiniteQuery<TResult, TError>;
   };
