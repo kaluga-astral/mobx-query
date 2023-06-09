@@ -4,12 +4,11 @@ import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import { QueryBaseActions, Sync, SyncParams } from '../types';
 
 /**
- * @description исполнитель запроса, ожидается,
- * что будет использоваться что-то из слоя sources
+ * @description исполнитель запроса
  */
-export type CacheableExecutor<TResult> = () => Promise<TResult>;
+export type QueryExecutor<TResult> = () => Promise<TResult>;
 
-export type CacheableQueryParams<TResult, TError> = {
+export type QueryParams<TResult, TError> = {
   /**
    * @description обработчик ошибки, вызываемый по умолчанию
    */
@@ -25,7 +24,7 @@ export type CacheableQueryParams<TResult, TError> = {
  * которые должны быть закешированы,
  * но им не требуется усложнение в виде работы с фильтрами и инфинити запросами
  */
-export class CacheableQuery<TResult, TError = void>
+export class Query<TResult, TError = void>
   implements QueryBaseActions<TResult, TError, undefined>
 {
   /**
@@ -38,16 +37,13 @@ export class CacheableQuery<TResult, TError = void>
    */
   private isInvalid: boolean = false;
 
-  /**
-   * @description реактивные данные
-   */
   private internalData: TResult | undefined;
 
   /**
    * @description исполнитель запроса, ожидается,
    * что будет использоваться что-то из слоя sources
    */
-  private executor: CacheableExecutor<TResult>;
+  private executor: QueryExecutor<TResult>;
 
   /**
    * @description обработчик ошибки, вызываемый по умолчанию
@@ -60,8 +56,8 @@ export class CacheableQuery<TResult, TError = void>
   private enabledAutoFetch?: boolean;
 
   constructor(
-    executor: CacheableExecutor<TResult>,
-    { onError, enabledAutoFetch }: CacheableQueryParams<TResult, TError> = {},
+    executor: QueryExecutor<TResult>,
+    { onError, enabledAutoFetch }: QueryParams<TResult, TError> = {},
   ) {
     this.executor = executor;
     this.defaultOnError = onError;
@@ -70,7 +66,7 @@ export class CacheableQuery<TResult, TError = void>
   }
 
   /**
-   * @description колбэк при вызове инвалидации
+   * @description метод для инвалидации данных
    */
   public invalidate = () => {
     this.isInvalid = true;
@@ -92,7 +88,7 @@ export class CacheableQuery<TResult, TError = void>
   /**
    * @description обработчик успешного ответа
    */
-  private handleSuccess = (resData: TResult) => {
+  private submitSuccess = (resData: TResult) => {
     runInAction(() => {
       this.internalData = resData;
       this.isInvalid = false;
@@ -108,9 +104,9 @@ export class CacheableQuery<TResult, TError = void>
     const { onSuccess, onError } = options || {};
 
     this.auxiliary
-      .getSingleTonePromise(this.executor)
+      .getSingletonePromise(this.executor)
       .then((res) => {
-        this.handleSuccess(res);
+        this.submitSuccess(res);
         onSuccess?.(res);
       })
       .catch((e: TError) => {
@@ -132,18 +128,17 @@ export class CacheableQuery<TResult, TError = void>
     }
 
     return this.auxiliary
-      .getSingleTonePromise(this.executor)
-      .then(this.handleSuccess);
+      .getSingletonePromise(this.executor)
+      .then(this.submitSuccess);
   };
 
   /**
-   * @description вычисляемое свойство, содержащее реактивные данные
+   * @description содержит реактивные данные
    * благодаря mobx, при изменении isInvalid, свойство будет вычисляться заново,
    * следовательно, стриггерится условие невалидности,
    * и начнется запрос, в результате которого, данные обновятся
    */
   public get data() {
-    // если включен флаг инвалидации,
     if (
       this.isInvalid ||
       // или если включен флаг автоматического запроса при чтении и данных нет и нет ошибки
@@ -180,6 +175,9 @@ export class CacheableQuery<TResult, TError = void>
     return this.auxiliary.error;
   }
 
+  /**
+   * @description флаг обозначающий, что последний запрос был успешно завершен
+   */
   public get isSuccess() {
     return this.auxiliary.isSuccess;
   }

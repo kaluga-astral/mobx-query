@@ -36,7 +36,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   /**
    * @description синглтон промис, для устранения гонки запросов
    */
-  private singleTonePromise?: Promise<TResult>;
+  private singletonePromise?: Promise<TResult>;
 
   constructor() {
     makeAutoObservable(this);
@@ -46,24 +46,24 @@ export class AuxiliaryQuery<TResult, TError = void> {
    * @description метод для объединения synс и async логики в одну,
    * чтобы одновременные вызовы sync/async работали бы с одним и тем же инстансом промиса
    */
-  public getSingleTonePromise = (executor: Executor<TResult>) => {
+  public getSingletonePromise = (executor: Executor<TResult>) => {
     // проверяем, если синглтона нет, то надо создать
-    if (!Boolean(this.singleTonePromise)) {
+    if (!Boolean(this.singletonePromise)) {
       this.startLoading();
 
-      this.singleTonePromise = executor()
+      this.singletonePromise = executor()
         .then((resData: TResult) => {
-          this.handleSuccess();
+          this.submitSuccess();
 
           return resData;
         })
         .catch((e) => {
-          this.handleError(e);
+          this.submitError(e);
 
           throw e;
         })
         .finally(() => {
-          this.singleTonePromise = undefined;
+          this.singletonePromise = undefined;
 
           runInAction(() => {
             this.isLoading = false;
@@ -71,13 +71,13 @@ export class AuxiliaryQuery<TResult, TError = void> {
         });
     }
 
-    return this.singleTonePromise as Promise<TResult>;
+    return this.singletonePromise as Promise<TResult>;
   };
 
   /**
    * @description обработчик успешного ответа
    */
-  public handleSuccess = () => {
+  public submitSuccess = () => {
     runInAction(() => {
       this.isError = false;
       this.isSuccess = true;
@@ -87,7 +87,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   /**
    * @description обработчик ошибки
    */
-  public handleError = (e: TError) => {
+  public submitError = (e: TError) => {
     runInAction(() => {
       this.isError = true;
       this.error = e;

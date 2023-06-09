@@ -1,6 +1,3 @@
-/**
- * @description параметры
- */
 export type SyncParams<TResult, TError, TExecutorParams = void> = {
   onSuccess?: (res: TResult) => void;
   onError?: (e: TError) => void;

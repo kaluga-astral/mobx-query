@@ -1,14 +1,10 @@
 import isEqual from 'lodash.isequal';
 
+import { Query, QueryExecutor, QueryParams } from '../Query';
 import {
-  CacheableExecutor,
-  CacheableQuery,
-  CacheableQueryParams,
-} from '../CacheableQuery';
-import {
+  InfiniteExecutor,
   InfiniteQuery,
   InfiniteQueryParams,
-  InfinityExecutor,
 } from '../InfiniteQuery';
 import {
   MutationExecutor,
@@ -25,10 +21,7 @@ import {
  * который будет запрашивать свежие данные, так же будет кешироваться, перезатирая существующий,
  * что приведет к последующему созданию 'cache-first' на основе 'network-only'
  */
-export enum CachePolicy {
-  'networkOnly',
-  'cacheFirst',
-}
+export type FetchPolicy = 'networkOnly' | 'cacheFirst';
 
 /**
  * @description стандартный обработчик ошибки запроса,
@@ -42,7 +35,7 @@ type OnError<TError = unknown> = (error: TError) => void;
 type KeyHash = string;
 
 type MobxQueryParams = {
-  cachePolicy: CachePolicy;
+  fetchPolicy: FetchPolicy;
   onError?: OnError;
   /**
    * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
@@ -51,38 +44,38 @@ type MobxQueryParams = {
   enabledAutoFetch?: boolean;
 };
 
-type WithCachePolicy = {
-  cachePolicy?: CachePolicy;
+type WithFetchPolicy = {
+  fetchPolicy?: FetchPolicy;
 };
 
-type CreateCacheableQueryParams<TResult, TError> = CacheableQueryParams<
+type CreateCacheableQueryParams<TResult, TError> = QueryParams<
   TResult,
   TError
 > &
-  WithCachePolicy;
+  WithFetchPolicy;
 
 type CreateInfiniteQueryParams<TResult, TError> = InfiniteQueryParams<
   TResult,
   TError
 > &
-  WithCachePolicy;
+  WithFetchPolicy;
 
 /**
  * @description внутриний тип кешируемого стора
  */
 type CachedQueryStore =
-  | CacheableQuery<unknown, unknown>
+  | Query<unknown, unknown>
   | InfiniteQuery<unknown, unknown>;
 
 /**
  * @description параметры кешируемого стора
  */
 type StoreParams<TResult, TError> =
-  | (CacheableQueryParams<TResult, TError> & {
-      executor: CacheableExecutor<TResult>;
+  | (QueryParams<TResult, TError> & {
+      executor: QueryExecutor<TResult>;
     })
   | (InfiniteQueryParams<TResult, TError> & {
-      executor: InfinityExecutor<TResult>;
+      executor: InfiniteExecutor<TResult>;
     });
 
 /**
@@ -96,10 +89,10 @@ enum CachedStoreTypes {
 /**
  * @description ключ для кешированя квери
  */
-type CacheKey = string | string[] | number | { [key: string]: CacheKey };
+export type CacheKey = string | string[] | number | { [key: string]: CacheKey };
 
 /**
- * @description фабрика создающая сторы данных, и запускающая их инвалидацию по указанным ключам
+ * @description Сервис, позволяющий кэшировать данные.
  */
 export class MobxQuery {
   /**
@@ -115,12 +108,12 @@ export class MobxQuery {
   /**
    * @description стандартный обработчик ошибок, будет использован, если не передан другой
    */
-  private readonly defaultOnError?: OnError;
+  private readonly defaultErrorHandler?: OnError;
 
   /**
    * @description стандартное поведение политики кеширования
    */
-  private readonly defaultCachePolicy: CachePolicy;
+  private readonly defaultFetchPolicy: FetchPolicy;
 
   /**
    * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
@@ -130,11 +123,11 @@ export class MobxQuery {
 
   constructor({
     onError,
-    cachePolicy,
+    fetchPolicy,
     enabledAutoFetch = false,
   }: MobxQueryParams) {
-    this.defaultOnError = onError;
-    this.defaultCachePolicy = cachePolicy;
+    this.defaultErrorHandler = onError;
+    this.defaultFetchPolicy = fetchPolicy;
     this.defaultEnabledAutoFetch = enabledAutoFetch;
   }
 
@@ -167,34 +160,31 @@ export class MobxQuery {
   };
 
   /**
-   * @description приватный метод, который занимается проверкой наличия стора по ключу,
+   * @description метод, который занимается проверкой наличия стора по ключу,
    * и если нет, создает новый, добавляет его к себе в память, и возвращает его пользователю
    */
   private getCachedQuery = (
-    key: unknown[],
+    key: CacheKey[],
     { executor, ...params }: StoreParams<unknown, unknown>,
     type: CachedStoreTypes,
-    cachePolicy = this.defaultCachePolicy,
+    fetchPolicy = this.defaultFetchPolicy,
   ) => {
     const keyHash: KeyHash = JSON.stringify(key);
 
-    if (
-      cachePolicy === CachePolicy.cacheFirst &&
-      this.cacheableStores.has(keyHash)
-    ) {
+    if (fetchPolicy === 'cacheFirst' && this.cacheableStores.has(keyHash)) {
       return this.cacheableStores.get(keyHash);
     }
 
     let store: CachedQueryStore;
 
     if (type === CachedStoreTypes.cacheable) {
-      store = new CacheableQuery(
-        executor as CacheableExecutor<unknown>,
-        params as CacheableQueryParams<unknown, unknown>,
+      store = new Query(
+        executor as QueryExecutor<unknown>,
+        params as QueryParams<unknown, unknown>,
       );
     } else {
       store = new InfiniteQuery(
-        executor as InfinityExecutor<unknown>,
+        executor as InfiniteExecutor<unknown>,
         params as InfiniteQueryParams<unknown, unknown>,
       );
     }
@@ -210,21 +200,21 @@ export class MobxQuery {
    */
   createCacheableQuery = <TResult, TError>(
     key: CacheKey[],
-    executor: CacheableExecutor<TResult>,
+    executor: QueryExecutor<TResult>,
     params?: CreateCacheableQueryParams<TResult, TError>,
   ) => {
     return this.getCachedQuery(
       key,
       {
         ...(params as StoreParams<unknown, unknown>),
-        onError: (params?.onError || this.defaultOnError) as OnError,
+        onError: (params?.onError || this.defaultErrorHandler) as OnError,
         executor,
         enabledAutoFetch:
           params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
       },
       CachedStoreTypes.cacheable,
-      params?.cachePolicy,
-    ) as CacheableQuery<TResult, TError>;
+      params?.fetchPolicy,
+    ) as Query<TResult, TError>;
   };
 
   /**
@@ -232,20 +222,20 @@ export class MobxQuery {
    */
   createInfiniteQuery = <TResult, TError>(
     key: CacheKey[],
-    executor: InfinityExecutor<TResult>,
+    executor: InfiniteExecutor<TResult>,
     params?: CreateInfiniteQueryParams<TResult, TError>,
   ) => {
     return this.getCachedQuery(
       key,
       {
         ...(params as StoreParams<unknown, unknown>),
-        onError: (params?.onError || this.defaultOnError) as OnError,
+        onError: (params?.onError || this.defaultErrorHandler) as OnError,
         enabledAutoFetch:
           params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
         executor,
       },
       CachedStoreTypes.infinite,
-      params?.cachePolicy,
+      params?.fetchPolicy,
     ) as InfiniteQuery<TResult, TError>;
   };
 
@@ -258,7 +248,7 @@ export class MobxQuery {
   ) => {
     return new MutationQuery<TResult, TError, TExecutorParams>(executor, {
       ...params,
-      onError: params?.onError || this.defaultOnError,
+      onError: params?.onError || this.defaultErrorHandler,
     });
   };
 }
