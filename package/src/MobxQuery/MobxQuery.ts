@@ -25,7 +25,10 @@ import {
  * который будет запрашивать свежие данные, так же будет кешироваться, перезатирая существующий,
  * что приведет к последующему созданию 'cache-first' на основе 'network-only'
  */
-export type CachePolicy = 'network-only' | 'cache-first';
+export enum CachePolicy {
+  'networkOnly',
+  'cacheFirst',
+}
 
 /**
  * @description стандартный обработчик ошибки запроса,
@@ -159,7 +162,10 @@ export class MobxQuery {
   ) => {
     const keyHash: KeyHash = JSON.stringify(key);
 
-    if (cachePolicy === 'cache-first' && this.cacheableStores.has(keyHash)) {
+    if (
+      cachePolicy === CachePolicy.networkOnly &&
+      this.cacheableStores.has(keyHash)
+    ) {
       return this.cacheableStores.get(keyHash);
     }
 
