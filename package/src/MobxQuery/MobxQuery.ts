@@ -44,6 +44,11 @@ type KeyHash = string;
 type MobxQueryParams = {
   cachePolicy: CachePolicy;
   onError?: OnError;
+  /**
+   * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * @default false
+   */
+  enabledAutoFetch?: boolean;
 };
 
 type WithCachePolicy = {
@@ -117,9 +122,20 @@ export class MobxQuery {
    */
   private readonly defaultCachePolicy: CachePolicy;
 
-  constructor({ onError, cachePolicy }: MobxQueryParams) {
+  /**
+   * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * @default false
+   */
+  private readonly defaultEnabledAutoFetch: boolean;
+
+  constructor({
+    onError,
+    cachePolicy,
+    enabledAutoFetch = false,
+  }: MobxQueryParams) {
     this.defaultOnError = onError;
     this.defaultCachePolicy = cachePolicy;
+    this.defaultEnabledAutoFetch = enabledAutoFetch;
   }
 
   /**
@@ -203,6 +219,8 @@ export class MobxQuery {
         ...(params as StoreParams<unknown, unknown>),
         onError: (params?.onError || this.defaultOnError) as OnError,
         executor,
+        enabledAutoFetch:
+          params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
       },
       CachedStoreTypes.cacheable,
       params?.cachePolicy,
@@ -222,6 +240,8 @@ export class MobxQuery {
       {
         ...(params as StoreParams<unknown, unknown>),
         onError: (params?.onError || this.defaultOnError) as OnError,
+        enabledAutoFetch:
+          params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
         executor,
       },
       CachedStoreTypes.infinite,
