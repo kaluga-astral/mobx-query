@@ -20,7 +20,7 @@ export type MutationQueryParams<TResult, TError> = {
 
 /**
  * @description простой стор для отправки данных,
- * подойдет для запросов, которым не требуется кэширование,
+ * подойдет для запросов, которые не требуется кэширование,
  * пример - POST запросы
  */
 export class MutationQuery<TResult, TError = void, TExecutorParams = void>

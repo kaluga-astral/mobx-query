@@ -17,6 +17,17 @@ import {
 } from '../MutationQuery';
 
 /**
+ * @description настройка способа кеширования квери.
+ * @variation 'cache-first' - будет сначала проверять наличие существующего квери,
+ * и если такой существует, то вероятно в нем уже имеются нужные данные, иначе создаться новый,
+ * добавлен в память, и вернется
+ * @variation 'network-only' - для каждого обращения будет создаваться новый квери,
+ * который будет запрашивать свежие данные, так же будет кешироваться, перезатирая существующий,
+ * что приведет к последующему созданию 'cache-first' на основе 'network-only'
+ */
+export type CachePolicy = 'network-only' | 'cache-first';
+
+/**
  * @description стандартный обработчик ошибки запроса,
  * будет вызван, если при вызове sync не был передан отдельный onError параметр
  */
@@ -26,6 +37,27 @@ type OnError<TError = unknown> = (error: TError) => void;
  * @description хэш ключа
  */
 type KeyHash = string;
+
+type MobxQueryParams = {
+  cachePolicy: CachePolicy;
+  onError?: OnError;
+};
+
+type WithCachePolicy = {
+  cachePolicy?: CachePolicy;
+};
+
+type CreateCacheableQueryParams<TResult, TError> = CacheableQueryParams<
+  TResult,
+  TError
+> &
+  WithCachePolicy;
+
+type CreateInfiniteQueryParams<TResult, TError> = InfiniteQueryParams<
+  TResult,
+  TError
+> &
+  WithCachePolicy;
 
 /**
  * @description внутриний тип кешируемого стора
@@ -72,10 +104,19 @@ export class MobxQuery {
    */
   private cacheableStores = new Map<KeyHash, CachedQueryStore>();
 
+  /**
+   * @description стандартный обработчик ошибок, будет использован, если не передан другой
+   */
   private readonly defaultOnError?: OnError;
 
-  constructor(onError?: OnError) {
+  /**
+   * @description стандартное поведение политики кеширования
+   */
+  private readonly defaultCachePolicy: CachePolicy;
+
+  constructor({ onError, cachePolicy }: MobxQueryParams) {
     this.defaultOnError = onError;
+    this.defaultCachePolicy = cachePolicy;
   }
 
   /**
@@ -114,10 +155,11 @@ export class MobxQuery {
     key: unknown[],
     { executor, ...params }: StoreParams<unknown, unknown>,
     type: CachedStoreTypes,
+    cachePolicy = this.defaultCachePolicy,
   ) => {
     const keyHash: KeyHash = JSON.stringify(key);
 
-    if (this.cacheableStores.has(keyHash)) {
+    if (cachePolicy === 'cache-first' && this.cacheableStores.has(keyHash)) {
       return this.cacheableStores.get(keyHash);
     }
 
@@ -142,12 +184,12 @@ export class MobxQuery {
   };
 
   /**
-   * @description метод создания стора,
+   * @description метод создания стора, кешируется
    */
   createCacheableQuery = <TResult, TError>(
     key: CacheKey[],
     executor: CacheableExecutor<TResult>,
-    params?: CacheableQueryParams<TResult, TError>,
+    params?: CreateCacheableQueryParams<TResult, TError>,
   ) => {
     return this.getCachedQuery(
       key,
@@ -157,6 +199,7 @@ export class MobxQuery {
         executor,
       },
       CachedStoreTypes.cacheable,
+      params?.cachePolicy,
     ) as CacheableQuery<TResult, TError>;
   };
 
@@ -166,7 +209,7 @@ export class MobxQuery {
   createInfiniteQuery = <TResult, TError>(
     key: CacheKey[],
     executor: InfinityExecutor<TResult>,
-    params?: InfiniteQueryParams<TResult, TError>,
+    params?: CreateInfiniteQueryParams<TResult, TError>,
   ) => {
     return this.getCachedQuery(
       key,
@@ -176,6 +219,7 @@ export class MobxQuery {
         executor,
       },
       CachedStoreTypes.infinite,
+      params?.cachePolicy,
     ) as InfiniteQuery<TResult, TError>;
   };
 
