@@ -48,6 +48,7 @@ describe('CacheableQuery tests', () => {
     const store = new CacheableQuery(() => Promise.reject('foo'), {
       onError: onDefaultError,
     });
+
     store.sync();
     expect(store.isLoading).toBe(true);
     await when(() => !store.isLoading);
@@ -58,7 +59,7 @@ describe('CacheableQuery tests', () => {
 
   it('Проверяем автоматический запрос данных при обращении к data', async () => {
     const store = new CacheableQuery(() => Promise.resolve('foo'), {
-      enabledAutoFetch: true
+      enabledAutoFetch: true,
     });
 
     expect(store.isLoading).toBe(false);

@@ -69,7 +69,7 @@ describe('InfiniteQuery tests', () => {
 
   it('Проверяем автоматический запрос данных при обращении к data', async () => {
     const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
-      enabledAutoFetch: true
+      enabledAutoFetch: true,
     });
 
     expect(store.isLoading).toBe(false);
@@ -79,13 +79,13 @@ describe('InfiniteQuery tests', () => {
     expect(store.data).toStrictEqual(['foo']);
   });
 
-
   it('Проверяем инкремент', async () => {
     const insideExecutor = vi.fn();
 
     const store = new InfiniteQuery(
       (params) => {
         insideExecutor(params);
+
         // эмулируем ситуацию, что у нас на бэке есть данные для первых двух страниц,
         // на каждой странице всего по 1му элементу
         if (params.offset <= 1) {
