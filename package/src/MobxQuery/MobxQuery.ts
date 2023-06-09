@@ -163,7 +163,7 @@ export class MobxQuery {
     const keyHash: KeyHash = JSON.stringify(key);
 
     if (
-      cachePolicy === CachePolicy.networkOnly &&
+      cachePolicy === CachePolicy.cacheFirst &&
       this.cacheableStores.has(keyHash)
     ) {
       return this.cacheableStores.get(keyHash);
