@@ -53,6 +53,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
       this.singleTonePromise = executor()
         .then((resData: TResult) => {
           this.handleSuccess();
+
           return resData;
         })
         .catch((e) => {
@@ -62,6 +63,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
         })
         .finally(() => {
           this.singleTonePromise = undefined;
+
           runInAction(() => {
             this.isLoading = false;
           });

@@ -152,7 +152,6 @@ export class MobxQuery {
     return this.getCachedQuery(
       key,
       {
-
         ...(params as StoreParams<unknown, unknown>),
         onError: (params?.onError || this.defaultOnError) as OnError,
         executor,

@@ -159,6 +159,7 @@ export class InfiniteQuery<TResult, TError = void>
     if (!this.isEndReached && this.internalData) {
       // прибавляем к офсету число запрашиваемых элементов
       this.offset += this.incrementCount;
+
       // запускаем запрос с последними параметрами, и флагом необходимости инкремента
       this.auxiliary
         .getSingleTonePromise(this.infinityExecutor)
@@ -217,6 +218,7 @@ export class InfiniteQuery<TResult, TError = void>
       .getSingleTonePromise(this.infinityExecutor)
       .then((resData) => {
         this.handleSuccess(resData);
+
         return resData;
       })
       .catch((e) => {
