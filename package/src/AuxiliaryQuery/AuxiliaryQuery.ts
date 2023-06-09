@@ -1,12 +1,16 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 
+/**
+ * @description испольнитель запроса
+ */
 type Executor<TResult> = () => Promise<TResult>;
 
 /**
  * @description вспомогательное хранилище данных, для композиции в Query сторах,
  * содержащее флаги загрузки и ошибки,
  * колбэки на успешный запрос и на ошибку,
- * и данные последней ошибки
+ * данные последней ошибки,
+ * а так же, управляющее синглтон промисом.
  */
 export class AuxiliaryQuery<TResult, TError = void> {
   /**
@@ -24,6 +28,9 @@ export class AuxiliaryQuery<TResult, TError = void> {
    */
   public error?: TError;
 
+  /**
+   * @description флаг, обозначающий успешность завершения последнего запроса
+   */
   public isSuccess = false;
 
   /**
@@ -47,6 +54,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
       this.singleTonePromise = executor()
         .then((resData: TResult) => {
           this.handleSuccess();
+
           return resData;
         })
         .catch((e) => {
@@ -56,6 +64,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
         })
         .finally(() => {
           this.singleTonePromise = undefined;
+
           runInAction(() => {
             this.isLoading = false;
           });
@@ -85,6 +94,9 @@ export class AuxiliaryQuery<TResult, TError = void> {
     });
   };
 
+  /**
+   * @description метод, вызываемый в самом начале запроса, чтобы сбросить флаги в соответствующее значение
+   */
   public startLoading = () => {
     this.isLoading = true;
     this.isError = false;

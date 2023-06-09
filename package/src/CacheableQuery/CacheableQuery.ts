@@ -61,10 +61,7 @@ export class CacheableQuery<TResult, TError = void>
 
   constructor(
     executor: CacheableExecutor<TResult>,
-    {
-      onError,
-      enabledAutoFetch,
-    }: CacheableQueryParams<TResult, TError> = {},
+    { onError, enabledAutoFetch }: CacheableQueryParams<TResult, TError> = {},
   ) {
     this.executor = executor;
     this.defaultOnError = onError;
@@ -88,6 +85,7 @@ export class CacheableQuery<TResult, TError = void>
 
       return;
     }
+
     this.proceedSync(params);
   };
 

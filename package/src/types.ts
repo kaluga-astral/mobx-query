@@ -1,14 +1,22 @@
-
+/**
+ * @description параметры
+ */
 export type SyncParams<TResult, TError, TExecutorParams = void> = {
   onSuccess?: (res: TResult) => void;
   onError?: (e: TError) => void;
   params?: TExecutorParams;
 };
 
+/**
+ * @description синхронный метод получения данных
+ */
 export type Sync<TResult, TError, TExecutorParams = void> = (
   params?: SyncParams<TResult, TError, TExecutorParams>,
 ) => void;
 
+/**
+ * @description асинхронный метод получения данных
+ */
 export type Async<TResult, TExecutorParams = void> = (
   params: TExecutorParams,
 ) => Promise<TResult>;
