@@ -3,19 +3,19 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import { QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 
-export const DEFAULT_INFINITY_ITEMS_COUNT = 30;
+export const DEFAULT_INFINITE_ITEMS_COUNT = 30;
 
-export type InfinityParams = {
+export type InfiniteParams = {
   offset: number;
   count: number;
 };
 
 /**
  * @description исполнитель запроса, ожидается,
- * что будет использоваться что-то из слоя sources, возвращающее массив данных
+ * что будет использоваться что-то возвращающее массив данных
  */
-export type InfinityExecutor<TResult> = (
-  params: InfinityParams,
+export type InfiniteExecutor<TResult> = (
+  params: InfiniteParams,
 ) => Promise<Array<TResult>>;
 
 export type InfiniteQueryParams<TResult, TError> = {
@@ -60,11 +60,8 @@ export class InfiniteQuery<TResult, TError = void>
    * @description исполнитель запроса, ожидается,
    * что будет использоваться что-то из слоя sources, возвращающее массив данных
    */
-  private executor: InfinityExecutor<TResult>;
+  private executor: InfiniteExecutor<TResult>;
 
-  /**
-   * @description внутреннее хранилище данных
-   */
   private internalData: Array<TResult> | undefined;
 
   /**
@@ -88,9 +85,9 @@ export class InfiniteQuery<TResult, TError = void>
   private enabledAutoFetch?: boolean;
 
   constructor(
-    executor: InfinityExecutor<TResult>,
+    executor: InfiniteExecutor<TResult>,
     {
-      incrementCount = DEFAULT_INFINITY_ITEMS_COUNT,
+      incrementCount = DEFAULT_INFINITE_ITEMS_COUNT,
       onError,
       enabledAutoFetch,
     }: InfiniteQueryParams<TResult, TError> = {},
@@ -105,12 +102,12 @@ export class InfiniteQuery<TResult, TError = void>
   /**
    * @description обработчик успешного запроса, проверяет что мы достигли предела
    */
-  private handleSuccess = (
+  private submitSuccess = (
     result: Array<TResult>,
     onSuccess?: (res: Array<TResult>) => void,
     isIncrement?: boolean,
   ) => {
-    this.auxiliary.handleSuccess();
+    this.auxiliary.submitSuccess();
     onSuccess?.(result);
 
     runInAction(() => {
@@ -135,7 +132,7 @@ export class InfiniteQuery<TResult, TError = void>
   /**
    * @description метод для обогащения параметров текущими значениями для инфинити
    */
-  private get infinityExecutor(): () => Promise<Array<TResult>> {
+  private get infiniteExecutor(): () => Promise<Array<TResult>> {
     return () =>
       this.executor({
         offset: this.offset,
@@ -144,10 +141,9 @@ export class InfiniteQuery<TResult, TError = void>
   }
 
   /**
-   * @description реагирование на инвалидацию
+   * @description метод для инвалидации данных
    */
   public invalidate = () => {
-    // используем последние параметры запроса,
     this.isInvalid = true;
   };
 
@@ -162,9 +158,9 @@ export class InfiniteQuery<TResult, TError = void>
 
       // запускаем запрос с последними параметрами, и флагом необходимости инкремента
       this.auxiliary
-        .getSingleTonePromise(this.infinityExecutor)
+        .getSingletonePromise(this.infiniteExecutor)
         .then((resData) => {
-          this.handleSuccess(resData, undefined, true);
+          this.submitSuccess(resData, undefined, true);
         });
     }
   };
@@ -188,9 +184,9 @@ export class InfiniteQuery<TResult, TError = void>
     this.offset = 0;
 
     this.auxiliary
-      .getSingleTonePromise(this.infinityExecutor)
+      .getSingletonePromise(this.infiniteExecutor)
       .then((resData) => {
-        this.handleSuccess(resData, onSuccess);
+        this.submitSuccess(resData, onSuccess);
       })
       .catch((e: TError) => {
         if (onError) {
@@ -215,14 +211,14 @@ export class InfiniteQuery<TResult, TError = void>
     this.offset = 0;
 
     return this.auxiliary
-      .getSingleTonePromise(this.infinityExecutor)
+      .getSingletonePromise(this.infiniteExecutor)
       .then((resData) => {
-        this.handleSuccess(resData);
+        this.submitSuccess(resData);
 
         return resData;
       })
       .catch((e) => {
-        this.auxiliary.handleError(e);
+        this.auxiliary.submitError(e);
 
         throw e;
       });
@@ -235,7 +231,6 @@ export class InfiniteQuery<TResult, TError = void>
    * и начнется запрос, в результате которого, данные обновятся
    */
   public get data() {
-    // если включен флаг инвалидации,
     if (
       this.isInvalid ||
       // или если включен флаг автоматического запроса при чтении и данных нет, и нет ошибки

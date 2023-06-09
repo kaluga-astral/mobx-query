@@ -4,8 +4,7 @@ import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import { QueryBaseActions, Sync, SyncParams } from '../types';
 
 /**
- * @description исполнитель запроса, ожидается,
- * что будет использоваться что-то из слоя sources
+ * @description исполнитель запроса
  */
 export type MutationExecutor<TResult, TParams> = (
   params: TParams,
@@ -19,8 +18,7 @@ export type MutationQueryParams<TResult, TError> = {
 };
 
 /**
- * @description простой стор для отправки данных,
- * подойдет для запросов, которые не требуется кэширование,
+ * @description простой стор для запросов, которые не требуют кэширования,
  * пример - POST запросы
  */
 export class MutationQuery<TResult, TError = void, TExecutorParams = void>
@@ -58,7 +56,7 @@ export class MutationQuery<TResult, TError = void, TExecutorParams = void>
     const { onSuccess, onError, params } = options || {};
 
     this.auxiliary
-      .getSingleTonePromise(() => this.executor(params as TExecutorParams))
+      .getSingletonePromise(() => this.executor(params as TExecutorParams))
       .then((resData) => {
         onSuccess?.(resData);
       })
@@ -76,7 +74,7 @@ export class MutationQuery<TResult, TError = void, TExecutorParams = void>
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = (params: TExecutorParams) => {
-    return this.auxiliary.getSingleTonePromise(() => this.executor(params));
+    return this.auxiliary.getSingletonePromise(() => this.executor(params));
   };
 
   /**

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { when } from 'mobx';
 
-import { CachePolicy, MobxQuery } from './MobxQuery';
+import { MobxQuery } from './MobxQuery';
 
 const checkLoading = (items: { isLoading: boolean }[]) =>
   items.every((item) => item.isLoading === false);
 
 describe('MobxQuery tests', () => {
   it('Проверяем создание сторов при работе с cacheFirst', async () => {
-    const mobxQuery = new MobxQuery({ cachePolicy: CachePolicy.cacheFirst });
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
     const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
       Promise.resolve([]),
     );
@@ -27,7 +27,7 @@ describe('MobxQuery tests', () => {
   });
 
   it('Проверяем создание сторов при работе с networkOnly', async () => {
-    const mobxQuery = new MobxQuery({ cachePolicy: CachePolicy.networkOnly });
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'networkOnly' });
     const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
       Promise.resolve([]),
     );
@@ -46,7 +46,7 @@ describe('MobxQuery tests', () => {
   });
 
   it('Проверяем создание сторов при работе с cacheFirst и networkOnly', async () => {
-    const mobxQuery = new MobxQuery({ cachePolicy: CachePolicy.cacheFirst });
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
     const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
       Promise.resolve([]),
     );
@@ -54,7 +54,7 @@ describe('MobxQuery tests', () => {
       ['foo'],
       () => Promise.resolve([]),
       {
-        cachePolicy: CachePolicy.networkOnly,
+        fetchPolicy: 'networkOnly',
       },
     );
 
@@ -64,7 +64,7 @@ describe('MobxQuery tests', () => {
       ['foo'],
       () => Promise.resolve([]),
       {
-        cachePolicy: CachePolicy.cacheFirst,
+        fetchPolicy: 'cacheFirst',
       },
     );
 
@@ -75,7 +75,7 @@ describe('MobxQuery tests', () => {
   });
 
   it('Проверяем работу инвалидации ', async () => {
-    const mobxQuery = new MobxQuery({ cachePolicy: CachePolicy.cacheFirst });
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
     const queryAsc = mobxQuery.createInfiniteQuery(
       ['foo', { direction: 'asc' }],
       () => Promise.resolve(['foo', 'data']),

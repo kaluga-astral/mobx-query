@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
-import { CacheableQuery } from './CacheableQuery';
+import { Query } from './Query';
 
 describe('CacheableQuery tests', () => {
   it('Проверяем инит состояние, пока ничего не запросили', () => {
-    const store = new CacheableQuery(() => Promise.resolve('foo'));
+    const store = new Query(() => Promise.resolve('foo'));
 
     expect(store.isError).toBe(false);
     expect(store.isLoading).toBe(false);
@@ -15,7 +15,7 @@ describe('CacheableQuery tests', () => {
 
   it('Проверяем положительный кейс', async () => {
     const onSuccess = vi.fn();
-    const store = new CacheableQuery(() => Promise.resolve('foo'));
+    const store = new Query(() => Promise.resolve('foo'));
 
     store.sync({ onSuccess });
     expect(store.isLoading).toBe(true);
@@ -31,7 +31,7 @@ describe('CacheableQuery tests', () => {
 
   it('Проверяем отрицательный кейс вызова sync когда передан обработчик ошибки в саму функцию', async () => {
     const onError = vi.fn();
-    const store = new CacheableQuery(() => Promise.reject('foo'));
+    const store = new Query(() => Promise.reject('foo'));
 
     store.sync({ onError });
     await when(() => !store.isLoading);
@@ -45,7 +45,7 @@ describe('CacheableQuery tests', () => {
 
   it('Проверяем отрицательный кейс вызова syc, когда передан обработчик ошибки по умолчанию', async () => {
     const onDefaultError = vi.fn();
-    const store = new CacheableQuery(() => Promise.reject('foo'), {
+    const store = new Query(() => Promise.reject('foo'), {
       onError: onDefaultError,
     });
 
@@ -58,7 +58,7 @@ describe('CacheableQuery tests', () => {
   });
 
   it('Проверяем автоматический запрос данных при обращении к data', async () => {
-    const store = new CacheableQuery(() => Promise.resolve('foo'), {
+    const store = new Query(() => Promise.resolve('foo'), {
       enabledAutoFetch: true,
     });
 
@@ -70,7 +70,7 @@ describe('CacheableQuery tests', () => {
   });
 
   it('Проверяем инвалидацию', async () => {
-    const store = new CacheableQuery(() => Promise.resolve('foo'));
+    const store = new Query(() => Promise.resolve('foo'));
 
     expect(store.data).toBe(undefined);
     store.invalidate();
