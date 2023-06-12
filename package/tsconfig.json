@@ -6,9 +6,6 @@
     "./*.js",
     "./*.ts"
   ],
-  "compilerOptions": {
-    "types": ["lodash.isequal"]
-  },
   "exclude": [
     "lib"
   ]

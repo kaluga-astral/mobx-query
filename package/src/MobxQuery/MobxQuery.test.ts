@@ -9,14 +9,16 @@ const checkLoading = (items: { isLoading: boolean }[]) =>
 describe('MobxQuery tests', () => {
   it('Проверяем создание сторов при работе с cacheFirst', async () => {
     const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
-    const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
+    const objKey = ['foo', 'bar'];
+    const queryA = mobxQuery.createInfiniteQuery([objKey, { foo: 'bar' }], () =>
       Promise.resolve([]),
     );
     const queryB = mobxQuery.createInfiniteQuery(['bar'], () =>
       Promise.resolve([]),
     );
-    const queryC = mobxQuery.createInfiniteQuery(['foo'], () =>
-      Promise.resolve([]),
+    const queryC = mobxQuery.createInfiniteQuery(
+      [['foo', 'bar'], { foo: 'bar' }],
+      () => Promise.resolve([]),
     );
 
     expect(queryA === queryB, 'при разных ключах, квери разные').toBe(false);
@@ -74,7 +76,7 @@ describe('MobxQuery tests', () => {
     ).toBe(true);
   });
 
-  it('Проверяем работу инвалидации ', async () => {
+  it('Проверяем работу инвалидации с простыми ключами', async () => {
     const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
     const queryAsc = mobxQuery.createInfiniteQuery(
       ['foo', { direction: 'asc' }],
@@ -91,59 +93,182 @@ describe('MobxQuery tests', () => {
 
     const queries = [queryAsc, queryDesc, queryUser];
 
-    // проверяем что данных действительно нет
-    expect(queryAsc.data).toBe(undefined);
-    expect(queryDesc.data).toBe(undefined);
-    expect(queryUser.data).toBe(undefined);
+    expect(
+      queryAsc.data,
+      'queryAsc проверяем что данных действительно нет',
+    ).toBe(undefined);
+
+    expect(
+      queryDesc.data,
+      'queryDesc проверяем что данных действительно нет',
+    ).toBe(undefined);
+
+    expect(
+      queryUser.data,
+      'queryUser проверяем что данных действительно нет',
+    ).toBe(undefined);
+
     // запускаем запрос данных везде
     queryAsc.sync();
     queryDesc.sync();
     queryUser.sync();
     await when(() => checkLoading(queries));
-    // проверяем что данные попали в стор
-    expect(queryAsc.data).toStrictEqual(['foo', 'data']);
-    expect(queryDesc.data).toStrictEqual(['data', 'foo']);
-    expect(queryUser.data).toStrictEqual({ name: 'Ваня' });
+
+    expect(
+      queryAsc.data,
+      'queryAsc проверяем что данные появились',
+    ).toStrictEqual(['foo', 'data']);
+
+    expect(
+      queryDesc.data,
+      'queryDesc проверяем что данные появились',
+    ).toStrictEqual(['data', 'foo']);
+
+    expect(
+      queryUser.data,
+      'queryUser проверяем что данные появились',
+    ).toStrictEqual({ name: 'Ваня' });
+
     // запускаем инвалидацию по одной вариации ключа
     mobxQuery.invalidate(['user']);
-    // дергаем дату у всех сторов, что бы тригернуть загрузку
-    expect(queryAsc.data).toStrictEqual(['foo', 'data']);
-    expect(queryDesc.data).toStrictEqual(['data', 'foo']);
-    expect(queryUser.data).toStrictEqual({ name: 'Ваня' });
-    // проверяем что загрузка началась только в сторе пользователя
-    expect(queryAsc.isLoading).toBe(false);
-    expect(queryDesc.isLoading).toBe(false);
-    expect(queryUser.isLoading).toBe(true);
+
+    expect(
+      queryAsc.data,
+      'queryAsc дергаем дату у всех сторов, что бы тригернуть загрузку',
+    ).toStrictEqual(['foo', 'data']);
+
+    expect(
+      queryDesc.data,
+      'queryDesc дергаем дату у всех сторов, что бы тригернуть загрузку',
+    ).toStrictEqual(['data', 'foo']);
+
+    expect(
+      queryUser.data,
+      'queryUser дергаем дату у всех сторов, что бы тригернуть загрузку',
+    ).toStrictEqual({ name: 'Ваня' });
+
+    expect(
+      queryAsc.isLoading,
+      'queryAsc проверяем что загрузка началась только в сторе пользователя',
+    ).toBe(false);
+
+    expect(
+      queryDesc.isLoading,
+      'queryDesc проверяем что загрузка началась только в сторе пользователя',
+    ).toBe(false);
+
+    expect(
+      queryUser.isLoading,
+      'queryUser проверяем что загрузка началась только в сторе пользователя',
+    ).toBe(true);
+
     await when(() => checkLoading(queries));
     // проверяем инвалидцию на другие 2 стора
     mobxQuery.invalidate(['foo']);
-    // дергаем дату у всех сторов, что бы тригернуть загрузку
-    expect(queryAsc.data).toStrictEqual(['foo', 'data']);
-    expect(queryDesc.data).toStrictEqual(['data', 'foo']);
-    expect(queryUser.data).toStrictEqual({ name: 'Ваня' });
-    // проверяем что загрузка в двух с ключом foo
-    expect(queryAsc.isLoading).toBe(true);
-    expect(queryDesc.isLoading).toBe(true);
-    expect(queryUser.isLoading).toBe(false);
+
+    expect(
+      queryAsc.data,
+      'queryAsc дергаем дату у всех сторов, что бы тригернуть загрузку',
+    ).toStrictEqual(['foo', 'data']);
+
+    expect(
+      queryDesc.data,
+      'queryDesc дергаем дату у всех сторов, что бы тригернуть загрузку',
+    ).toStrictEqual(['data', 'foo']);
+
+    expect(
+      queryUser.data,
+      'queryUser дергаем дату у всех сторов, что бы тригернуть загрузку',
+    ).toStrictEqual({ name: 'Ваня' });
+
+    expect(
+      queryAsc.isLoading,
+      'queryAsc проверяем что загрузка в двух с ключом foo',
+    ).toBe(true);
+
+    expect(
+      queryDesc.isLoading,
+      'queryDesc проверяем что загрузка в двух с ключом foo',
+    ).toBe(true);
+
+    expect(
+      queryUser.isLoading,
+      'queryUser проверяем что загрузка в двух с ключом foo',
+    ).toBe(false);
+
     await when(() => checkLoading(queries));
     // проверяем инвалидцию по ключу второго уровня
     mobxQuery.invalidate([{ direction: 'asc' }]);
-    // дергаем дату у всех сторов, что бы тригернуть загрузку
-    expect(queryAsc.data).toStrictEqual(['foo', 'data']);
-    expect(queryDesc.data).toStrictEqual(['data', 'foo']);
-    expect(queryUser.data).toStrictEqual({ name: 'Ваня' });
-    // проверяем что загрузка началась только в сторе с direction: 'asc'
-    expect(queryAsc.isLoading).toBe(true);
-    expect(queryDesc.isLoading).toBe(false);
-    expect(queryUser.isLoading).toBe(false);
+
+    expect(
+      queryAsc.data,
+      'queryAsc дергаем data у всех сторов, что бы тригернуть загрузку',
+    ).toStrictEqual(['foo', 'data']);
+
+    expect(
+      queryDesc.data,
+      'queryDesc дергаем data у всех сторов, что бы тригернуть загрузку',
+    ).toStrictEqual(['data', 'foo']);
+
+    expect(
+      queryUser.data,
+      'queryUser дергаем data у всех сторов, что бы тригернуть загрузку',
+    ).toStrictEqual({ name: 'Ваня' });
+
+    expect(
+      queryAsc.isLoading,
+      'queryAsc ожидаем что загрузка началась только в сторе с direction: "asc"',
+    ).toBe(true);
+
+    expect(
+      queryDesc.isLoading,
+      'queryDesc ожидаем что загрузка началась только в сторе с direction: "asc"',
+    ).toBe(false);
+
+    expect(
+      queryUser.isLoading,
+      'queryUser ожидаем что загрузка началась только в сторе с direction: "asc"',
+    ).toBe(false);
+
     await when(() => checkLoading(queries));
     // проверяем инвалидацию для не активного стора
     mobxQuery.invalidate(['user']);
-    // пока не дернули дату, загрузка не должна начинаться
-    expect(queryUser.isLoading).toBe(false);
-    // дергаем дату, чтобы тригернуть загрузку
-    expect(queryUser.data).toStrictEqual({ name: 'Ваня' });
-    // проверяем что загрузка началась
-    expect(queryUser.isLoading).toBe(true);
+
+    expect(
+      queryUser.isLoading,
+      'пока не дернули data, загрузка не должна начинаться',
+    ).toBe(false);
+
+    expect(
+      queryUser.data,
+      'эмулируем чтение data, чтобы тригернуть загрузку',
+    ).toStrictEqual({ name: 'Ваня' });
+
+    expect(queryUser.isLoading, 'проверяем что загрузка началась').toBe(true);
+  });
+
+  it('Проверяем работу инвалидации со сложным ключом', async () => {
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
+    const query = mobxQuery.createCacheableQuery([['foo', 'bar']], () =>
+      Promise.resolve('data'),
+    );
+
+    query.sync();
+    await when(() => !query.isLoading);
+    mobxQuery.invalidate(['foo']);
+    expect(query.data, 'эмулируем чтение data').toBe('data');
+
+    expect(
+      query.isLoading,
+      'т.к. ключ не верный, ожидаем что загрузка не началась',
+    ).toBe(false);
+
+    mobxQuery.invalidate([['foo', 'bar']]);
+
+    expect(query.data, 'эмулируем чтение data, чтобы тригернуть загрузку').toBe(
+      'data',
+    );
+
+    expect(query.isLoading, 'ожидаем что загрузка началась').toBe(true);
   });
 });
