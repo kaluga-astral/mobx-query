@@ -166,7 +166,7 @@ export class MobxQuery {
   /**
    * @description метод создания стора, кешируется
    */
-  createCacheableQuery = <TResult, TError>(
+  createQuery = <TResult, TError>(
     key: CacheKey[],
     executor: QueryExecutor<TResult>,
     params?: CreateCacheableQueryParams<TResult, TError>,
