@@ -87,7 +87,7 @@ describe('MobxQuery tests', () => {
       () => Promise.resolve(['data', 'foo']),
     );
 
-    const queryUser = mobxQuery.createCacheableQuery(['user'], () =>
+    const queryUser = mobxQuery.createQuery(['user'], () =>
       Promise.resolve({ name: 'Ваня' }),
     );
 
@@ -249,7 +249,7 @@ describe('MobxQuery tests', () => {
 
   it('Проверяем работу инвалидации со сложным ключом', async () => {
     const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
-    const query = mobxQuery.createCacheableQuery([['foo', 'bar']], () =>
+    const query = mobxQuery.createQuery([['foo', 'bar']], () =>
       Promise.resolve('data'),
     );
 
