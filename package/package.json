@@ -13,10 +13,6 @@
     "lint:all": "eslint \"**/*.{ts,tsx}\" --fix --quiet"
   },
   "dependencies": {
-    "mobx": "^6.9.0",
-    "lodash.isequal": "^4.5.0"
-  },
-  "devDependencies": {
-    "@types/lodash.isequal": "4.5.6"
+    "mobx": "^6.9.0"
   }
 }

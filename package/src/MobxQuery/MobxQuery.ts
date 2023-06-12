@@ -1,5 +1,3 @@
-import isEqual from 'lodash.isequal';
-
 import { Query, QueryExecutor, QueryParams } from '../Query';
 import {
   InfiniteExecutor,
@@ -68,17 +66,6 @@ type CachedQueryStore<TResult, TError> =
   | InfiniteQuery<TResult, TError>;
 
 /**
- * @description параметры кешируемого стора
- */
-type StoreParams<TResult, TError> =
-  | (QueryParams<TResult, TError> & {
-      executor: QueryExecutor<TResult>;
-    })
-  | (InfiniteQueryParams<TResult, TError> & {
-      executor: InfiniteExecutor<TResult>;
-    });
-
-/**
  * @description ключ для кешированя квери
  */
 export type CacheKey = string | string[] | number | { [key: string]: CacheKey };
@@ -90,7 +77,7 @@ export class MobxQuery {
   /**
    * @description объект соответствия хешей ключей и их значений
    */
-  private keys: Record<KeyHash, unknown[]> = {};
+  private keys: Record<KeyHash, CacheKey[]> = {};
 
   /**
    * @description Map соответствия хешей ключей к запомненным сторам
@@ -116,6 +103,8 @@ export class MobxQuery {
    */
   private readonly defaultEnabledAutoFetch: boolean;
 
+  private serialize = (data: CacheKey | CacheKey[]) => JSON.stringify(data);
+
   constructor({
     onError,
     fetchPolicy,
@@ -131,26 +120,19 @@ export class MobxQuery {
    * предполагается использование из домена
    */
   public invalidate = (keysParts: CacheKey[]) => {
-    // создаем массив затронутых ключей
-    const touchedKeys: KeyHash[] = Object.keys(this.keys)
-      .map((key: KeyHash) => {
-        const value = this.keys[key];
-        const hasTouchedElement = value.some((valuePart) =>
-          // ищем совпадающие части ключей
-          keysParts.some((keyPart) => isEqual(valuePart, keyPart)),
-        );
+    // сет сериализовонных ключей
+    const keysSet = new Set(keysParts.map(this.serialize));
 
-        if (hasTouchedElement) {
-          return key;
-        }
+    Object.keys(this.keys).forEach((key: KeyHash) => {
+      const value = this.keys[key];
+      // проверяем, есть ли пересечение между закешированными ключами и набором ключей для инвалидации
+      const hasTouchedElement = value.some((valuePart) =>
+        keysSet.has(this.serialize(valuePart)),
+      );
 
-        return '';
-      })
-      .filter(Boolean);
-
-    // для всех затронутых сторов, запускаем инвалидацию
-    touchedKeys.forEach((key) => {
-      this.cacheableStores.get(key)?.invalidate();
+      if (hasTouchedElement) {
+        this.cacheableStores.get(key)?.invalidate();
+      }
     });
   };
 
@@ -163,7 +145,7 @@ export class MobxQuery {
     createStore: () => CachedQueryStore<TResult, TError>,
     fetchPolicy = this.defaultFetchPolicy,
   ) => {
-    const keyHash: KeyHash = JSON.stringify(key);
+    const keyHash: KeyHash = this.serialize(key);
 
     if (fetchPolicy === 'cacheFirst' && this.cacheableStores.has(keyHash)) {
       return this.cacheableStores.get(keyHash);
@@ -188,12 +170,12 @@ export class MobxQuery {
     key: CacheKey[],
     executor: QueryExecutor<TResult>,
     params?: CreateCacheableQueryParams<TResult, TError>,
-  ) => {
-    return this.getCachedQuery(
+  ) =>
+    this.getCachedQuery(
       key,
       () =>
         new Query(executor, {
-          ...(params as StoreParams<unknown, unknown>),
+          ...params,
           onError: (params?.onError ||
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
@@ -201,7 +183,6 @@ export class MobxQuery {
         }),
       params?.fetchPolicy,
     ) as Query<TResult, TError>;
-  };
 
   /**
    * @description метод создания инфинит стора, кешируется
@@ -210,12 +191,12 @@ export class MobxQuery {
     key: CacheKey[],
     executor: InfiniteExecutor<TResult>,
     params?: CreateInfiniteQueryParams<TResult, TError>,
-  ) => {
-    return this.getCachedQuery(
+  ) =>
+    this.getCachedQuery(
       key,
       () =>
-        new InfiniteQuery(executor as InfiniteExecutor<unknown>, {
-          ...(params as StoreParams<unknown, unknown>),
+        new InfiniteQuery(executor, {
+          ...params,
           onError: (params?.onError ||
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
@@ -223,7 +204,6 @@ export class MobxQuery {
         }),
       params?.fetchPolicy,
     ) as InfiniteQuery<TResult, TError>;
-  };
 
   /**
    * @description метод создания мутации, не кешируется
@@ -231,10 +211,9 @@ export class MobxQuery {
   createMutationQuery = <TResult, TError, TExecutorParams>(
     executor: MutationExecutor<TResult, TExecutorParams>,
     params?: MutationQueryParams<TResult, TError>,
-  ) => {
-    return new MutationQuery<TResult, TError, TExecutorParams>(executor, {
+  ) =>
+    new MutationQuery<TResult, TError, TExecutorParams>(executor, {
       ...params,
       onError: params?.onError || this.defaultErrorHandler,
     });
-  };
 }
