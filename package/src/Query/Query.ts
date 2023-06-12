@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable } from 'mobx';
 
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import { QueryBaseActions, Sync, SyncParams } from '../types';
@@ -89,10 +89,8 @@ export class Query<TResult, TError = void>
    * @description обработчик успешного ответа
    */
   private submitSuccess = (resData: TResult) => {
-    runInAction(() => {
-      this.internalData = resData;
-      this.isInvalid = false;
-    });
+    this.internalData = resData;
+    this.isInvalid = false;
 
     return resData;
   };

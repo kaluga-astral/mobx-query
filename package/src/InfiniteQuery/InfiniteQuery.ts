@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable } from 'mobx';
 
 import { QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
@@ -110,23 +110,24 @@ export class InfiniteQuery<TResult, TError = void>
     this.auxiliary.submitSuccess();
     onSuccess?.(result);
 
-    runInAction(() => {
-      if (isIncrement && Array.isArray(this.internalData)) {
-        this.internalData = [...this.internalData, ...result];
-      } else {
-        this.internalData = result;
-      }
+    if (isIncrement && Array.isArray(this.internalData)) {
+      this.internalData = [...this.internalData, ...result];
+    } else {
+      this.internalData = result;
+    }
 
-      this.isInvalid = false;
+    this.isInvalid = false;
 
-      // убеждаемся что результат запроса действительно массив,
-      // и если колличество элементов в ответе меньше,
-      // чем запрашивалось, значит у бэка их больше нет
-      if (Array.isArray(result) && result.length < this.incrementCount) {
-        // включаем флаг достижения предела
-        this.isEndReached = true;
-      }
-    });
+    // убеждаемся что результат запроса действительно массив,
+    // и если количество элементов в ответе меньше,
+    // чем запрашивалось, значит у бэка их больше нет,
+    // другими словами мы допускаем что, может произойти лишний запрос,
+    // когда последняя отданная страница содержит ровно то количество,
+    // сколько может содержать страница, а следующая уже просто пустая.
+    if (Array.isArray(result) && result.length < this.incrementCount) {
+      // включаем флаг достижения предела
+      this.isEndReached = true;
+    }
   };
 
   /**
