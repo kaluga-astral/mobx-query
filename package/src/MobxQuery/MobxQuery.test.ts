@@ -7,8 +7,8 @@ const checkLoading = (items: { isLoading: boolean }[]) =>
   items.every((item) => item.isLoading === false);
 
 describe('MobxQuery tests', () => {
-  it('Проверяем создание сторов при работе с cacheFirst', async () => {
-    const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
+  it('Проверяем создание сторов при работе с cache-first', async () => {
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'cache-first' });
     const objKey = ['foo', 'bar'];
     const queryA = mobxQuery.createInfiniteQuery([objKey, { foo: 'bar' }], () =>
       Promise.resolve([]),
@@ -28,8 +28,8 @@ describe('MobxQuery tests', () => {
     );
   });
 
-  it('Проверяем создание сторов при работе с networkOnly', async () => {
-    const mobxQuery = new MobxQuery({ fetchPolicy: 'networkOnly' });
+  it('Проверяем создание сторов при работе с network-only', async () => {
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'network-only' });
     const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
       Promise.resolve([]),
     );
@@ -47,8 +47,8 @@ describe('MobxQuery tests', () => {
     );
   });
 
-  it('Проверяем создание сторов при работе с cacheFirst и networkOnly', async () => {
-    const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
+  it('Проверяем создание сторов при работе с cache-first и network-only', async () => {
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'cache-first' });
     const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
       Promise.resolve([]),
     );
@@ -56,7 +56,7 @@ describe('MobxQuery tests', () => {
       ['foo'],
       () => Promise.resolve([]),
       {
-        fetchPolicy: 'networkOnly',
+        fetchPolicy: 'network-only',
       },
     );
 
@@ -66,18 +66,18 @@ describe('MobxQuery tests', () => {
       ['foo'],
       () => Promise.resolve([]),
       {
-        fetchPolicy: 'cacheFirst',
+        fetchPolicy: 'cache-first',
       },
     );
 
     expect(
       queryB === query,
-      'cacheFirst квери, использующий тот же ключ, что и networkOnly квери до него, является тем же инстансом',
+      'cache-first квери, использующий тот же ключ, что и network-only квери до него, является тем же инстансом',
     ).toBe(true);
   });
 
   it('Проверяем работу инвалидации с простыми ключами', async () => {
-    const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'cache-first' });
     const queryAsc = mobxQuery.createInfiniteQuery(
       ['foo', { direction: 'asc' }],
       () => Promise.resolve(['foo', 'data']),
@@ -248,7 +248,7 @@ describe('MobxQuery tests', () => {
   });
 
   it('Проверяем работу инвалидации со сложным ключом', async () => {
-    const mobxQuery = new MobxQuery({ fetchPolicy: 'cacheFirst' });
+    const mobxQuery = new MobxQuery({ fetchPolicy: 'cache-first' });
     const query = mobxQuery.createQuery([['foo', 'bar']], () =>
       Promise.resolve('data'),
     );
