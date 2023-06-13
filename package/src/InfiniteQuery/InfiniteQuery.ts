@@ -20,7 +20,7 @@ export type InfiniteExecutor<TResult> = (
 
 export type InfiniteQueryParams<TResult, TError> = {
   /**
-   * @description колличество запрашиваемых элементов
+   * @description количество запрашиваемых элементов
    * @default 30
    */
   incrementCount?: number;
@@ -163,7 +163,7 @@ export class InfiniteQuery<TResult, TError = void>
   /**
    * @description метод для запроса следующего набора данных
    */
-  public increment = () => {
+  public fetchMore = () => {
     // если мы еще не достигли предела
     if (!this.isEndReached && this.internalData) {
       // прибавляем к офсету число запрашиваемых элементов

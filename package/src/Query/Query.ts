@@ -38,6 +38,9 @@ export class Query<TResult, TError = void>
    */
   private isInvalid: boolean = false;
 
+  /**
+   * @description поле, отвечающее за непосредственное хранение данных
+   */
   private internalData: TResult | undefined;
 
   /**
