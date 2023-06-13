@@ -232,15 +232,13 @@ export class InfiniteQuery<TResult, TError = void>
    * и начнется запрос, в результате которого, данные обновятся
    */
   public get data() {
-    if (
-      this.isInvalid ||
-      // или если включен флаг автоматического запроса при чтении и данных нет, и нет ошибки
-      (this.enabledAutoFetch &&
-        !Boolean(this.internalData) &&
-        !this.isLoading &&
-        !this.isError)
-    ) {
-      // иначе пытаемся самостоятельно обновить данные с последними вызванными параметрами
+    const shouldSync =
+      this.enabledAutoFetch &&
+      !Boolean(this.internalData) &&
+      !this.isLoading &&
+      !this.isError;
+
+    if (this.isInvalid || shouldSync) {
       this.proceedSync();
     }
 
