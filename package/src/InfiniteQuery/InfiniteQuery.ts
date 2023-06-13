@@ -1,6 +1,6 @@
 import { makeAutoObservable } from 'mobx';
 
-import { QueryBaseActions, Sync, SyncParams } from '../types';
+import { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 
 export const DEFAULT_INFINITE_ITEMS_COUNT = 30;
@@ -32,6 +32,7 @@ export type InfiniteQueryParams<TResult, TError> = {
    * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   enabledAutoFetch?: boolean;
+  fetchPolicy?: FetchPolicy;
 };
 
 /**
@@ -84,19 +85,30 @@ export class InfiniteQuery<TResult, TError = void>
    */
   private enabledAutoFetch?: boolean;
 
+  /**
+   * @description стандартное поведение политики кеширования
+   */
+  private readonly defaultFetchPolicy?: FetchPolicy;
+
   constructor(
     executor: InfiniteExecutor<TResult>,
     {
       incrementCount = DEFAULT_INFINITE_ITEMS_COUNT,
       onError,
       enabledAutoFetch,
+      fetchPolicy,
     }: InfiniteQueryParams<TResult, TError> = {},
   ) {
     this.incrementCount = incrementCount;
     this.executor = executor;
     this.defaultOnError = onError;
     this.enabledAutoFetch = enabledAutoFetch;
+    this.defaultFetchPolicy = fetchPolicy;
     makeAutoObservable(this);
+  }
+
+  private get isNetworkOnly() {
+    return this.defaultFetchPolicy === 'network-only';
   }
 
   /**
@@ -170,7 +182,11 @@ export class InfiniteQuery<TResult, TError = void>
    * @description синхронный метод получения данных
    */
   public sync: Sync<Array<TResult>, TError> = (params) => {
-    if (this.isInvalid || !(this.isLoading || Boolean(this.internalData))) {
+    if (
+      this.isNetworkOnly ||
+      this.isInvalid ||
+      !(this.isLoading || Boolean(this.internalData))
+    ) {
       this.proceedSync(params);
     }
   };
@@ -205,7 +221,11 @@ export class InfiniteQuery<TResult, TError = void>
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = () => {
-    if (Array.isArray(this.internalData)) {
+    if (
+      !this.isNetworkOnly &&
+      Array.isArray(this.internalData) &&
+      !this.isInvalid
+    ) {
       return Promise.resolve(this.internalData);
     }
 
@@ -226,7 +246,7 @@ export class InfiniteQuery<TResult, TError = void>
   };
 
   /**
-   * @description вычисляемое свойство, содержащее реактивные данные данные,
+   * @description вычисляемое свойство, содержащее реактивные данные,
    * благодаря mobx, при изменении isInvalid, свойство будет вычисляться заново,
    * следовательно, стриггерится условие невалидности,
    * и начнется запрос, в результате которого, данные обновятся

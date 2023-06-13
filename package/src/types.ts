@@ -44,3 +44,10 @@ export type QueryBaseActions<TResult, TError, TExecutorParams = void> = {
    */
   isSuccess: boolean;
 };
+
+/**
+ * @description политика получения данных.
+ * @variation 'cache-first' - данные сначала берутся из кеша, если их нет, тогда идет обращение к сети, ответ записывается в кэш
+ * @kind 'network-only' - данные всегда беруться из сети, при этом ответ записывается в кэш
+ */
+export type FetchPolicy = 'network-only' | 'cache-first';
