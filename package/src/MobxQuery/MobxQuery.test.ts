@@ -168,17 +168,17 @@ describe('MobxQuery tests', () => {
 
     expect(
       queryAsc.data,
-      'queryAsc дергаем дату у всех сторов, что бы тригернуть загрузку',
+      'queryAsc дергаем дату, что бы тригернуть загрузку',
     ).toStrictEqual(['foo', 'data']);
 
     expect(
       queryDesc.data,
-      'queryDesc дергаем дату у всех сторов, что бы тригернуть загрузку',
+      'queryDesc дергаем дату, что бы тригернуть загрузку',
     ).toStrictEqual(['data', 'foo']);
 
     expect(
       queryUser.data,
-      'queryUser дергаем дату у всех сторов, что бы тригернуть загрузку',
+      'queryUser дергаем дату, что бы тригернуть загрузку',
     ).toStrictEqual({ name: 'Ваня' });
 
     expect(
@@ -202,17 +202,17 @@ describe('MobxQuery tests', () => {
 
     expect(
       queryAsc.data,
-      'queryAsc дергаем data у всех сторов, что бы тригернуть загрузку',
+      'queryAsc дергаем data, что бы тригернуть загрузку',
     ).toStrictEqual(['foo', 'data']);
 
     expect(
       queryDesc.data,
-      'queryDesc дергаем data у всех сторов, что бы тригернуть загрузку',
+      'queryDesc дергаем data, что бы тригернуть загрузку',
     ).toStrictEqual(['data', 'foo']);
 
     expect(
       queryUser.data,
-      'queryUser дергаем data у всех сторов, что бы тригернуть загрузку',
+      'queryUser дергаем data, что бы тригернуть загрузку',
     ).toStrictEqual({ name: 'Ваня' });
 
     expect(

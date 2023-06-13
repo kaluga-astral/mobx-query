@@ -32,6 +32,31 @@ describe('MutationQuery tests', () => {
     expect(store.isLoading).toBe(false);
   });
 
+  it('Проверяем передачу параметров c sync', async () => {
+    const callBack = vi.fn();
+    const store = new MutationQuery((params: string) => {
+      callBack(params);
+
+      return Promise.resolve('foo');
+    });
+
+    store.sync({ params: 'bar' });
+    await when(() => !store.isLoading);
+    expect(callBack).toBeCalledWith('bar');
+  });
+
+  it('Проверяем передачу параметров c async', async () => {
+    const callBack = vi.fn();
+    const store = new MutationQuery((params: string) => {
+      callBack(params);
+
+      return Promise.resolve('foo');
+    });
+
+    await store.async('bar');
+    expect(callBack).toBeCalledWith('bar');
+  });
+
   it('Проверяем отрицательный кейс c sync, без стандартной обработки ошибки', async () => {
     const store = new MutationQuery(() => Promise.reject('foo'));
 
