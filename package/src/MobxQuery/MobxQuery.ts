@@ -9,17 +9,7 @@ import {
   MutationQuery,
   MutationQueryParams,
 } from '../MutationQuery';
-
-/**
- * @description настройка способа кеширования квери.
- * @variation 'cache-first' - будет сначала проверять наличие существующего квери,
- * и если такой существует, то вероятно в нем уже имеются нужные данные, иначе создаться новый,
- * добавлен в память, и вернется
- * @variation 'network-only' - для каждого обращения будет создаваться новый квери,
- * который будет запрашивать свежие данные, так же будет кешироваться, перезатирая существующий,
- * что приведет к последующему созданию 'cache-first' на основе 'network-only'
- */
-export type FetchPolicy = 'network-only' | 'cache-first';
+import { FetchPolicy } from '../types';
 
 /**
  * @description стандартный обработчик ошибки запроса,
@@ -42,21 +32,12 @@ type MobxQueryParams = {
   enabledAutoFetch?: boolean;
 };
 
-type WithFetchPolicy = {
-  fetchPolicy?: FetchPolicy;
-};
-
-type CreateCacheableQueryParams<TResult, TError> = QueryParams<
-  TResult,
-  TError
-> &
-  WithFetchPolicy;
+type CreateCacheableQueryParams<TResult, TError> = QueryParams<TResult, TError>;
 
 type CreateInfiniteQueryParams<TResult, TError> = InfiniteQueryParams<
   TResult,
   TError
-> &
-  WithFetchPolicy;
+>;
 
 /**
  * @description внутриний тип кешируемого стора
@@ -105,11 +86,9 @@ export class MobxQuery {
 
   private serialize = (data: CacheKey | CacheKey[]) => JSON.stringify(data);
 
-  constructor({
-    onError,
-    fetchPolicy,
-    enabledAutoFetch = false,
-  }: MobxQueryParams) {
+  constructor(
+    { onError, fetchPolicy, enabledAutoFetch = false } = {} as MobxQueryParams,
+  ) {
     this.defaultErrorHandler = onError;
     this.defaultFetchPolicy = fetchPolicy;
     this.defaultEnabledAutoFetch = enabledAutoFetch;
@@ -143,11 +122,10 @@ export class MobxQuery {
   private getCachedQuery = <TResult, TError>(
     key: CacheKey[],
     createStore: () => CachedQueryStore<TResult, TError>,
-    fetchPolicy = this.defaultFetchPolicy,
   ) => {
     const keyHash: KeyHash = this.serialize(key);
 
-    if (fetchPolicy === 'cache-first' && this.cacheableStores.has(keyHash)) {
+    if (this.cacheableStores.has(keyHash)) {
       return this.cacheableStores.get(keyHash);
     }
 
@@ -180,8 +158,8 @@ export class MobxQuery {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
+          fetchPolicy: params?.fetchPolicy || this.defaultFetchPolicy,
         }),
-      params?.fetchPolicy,
     ) as Query<TResult, TError>;
 
   /**
@@ -201,8 +179,8 @@ export class MobxQuery {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
+          fetchPolicy: params?.fetchPolicy || this.defaultFetchPolicy,
         }),
-      params?.fetchPolicy,
     ) as InfiniteQuery<TResult, TError>;
 
   /**

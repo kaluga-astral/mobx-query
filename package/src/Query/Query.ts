@@ -1,7 +1,7 @@
 import { makeAutoObservable } from 'mobx';
 
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
-import { QueryBaseActions, Sync, SyncParams } from '../types';
+import { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 
 /**
  * @description исполнитель запроса
@@ -17,6 +17,7 @@ export type QueryParams<TResult, TError> = {
    * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   enabledAutoFetch?: boolean;
+  fetchPolicy?: FetchPolicy;
 };
 
 /**
@@ -55,14 +56,28 @@ export class Query<TResult, TError = void>
    */
   private enabledAutoFetch?: boolean;
 
+  /**
+   * @description стандартное поведение политики кеширования
+   */
+  private readonly defaultFetchPolicy?: FetchPolicy;
+
   constructor(
     executor: QueryExecutor<TResult>,
-    { onError, enabledAutoFetch }: QueryParams<TResult, TError> = {},
+    {
+      onError,
+      enabledAutoFetch,
+      fetchPolicy,
+    }: QueryParams<TResult, TError> = {},
   ) {
     this.executor = executor;
     this.defaultOnError = onError;
     this.enabledAutoFetch = enabledAutoFetch;
+    this.defaultFetchPolicy = fetchPolicy;
     makeAutoObservable(this);
+  }
+
+  private get isNetworkOnly() {
+    return this.defaultFetchPolicy === 'network-only';
   }
 
   /**
@@ -76,13 +91,13 @@ export class Query<TResult, TError = void>
    * @description синхронный метод получения данных
    */
   public sync: Sync<TResult, TError, undefined> = (params) => {
-    if (Boolean(this.internalData)) {
-      params?.onSuccess?.(this.internalData as TResult);
-
-      return;
+    if (
+      this.isNetworkOnly ||
+      this.isInvalid ||
+      !(this.isLoading || Boolean(this.internalData))
+    ) {
+      this.proceedSync(params);
     }
-
-    this.proceedSync(params);
   };
 
   /**
@@ -121,7 +136,7 @@ export class Query<TResult, TError = void>
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = () => {
-    if (Boolean(this.internalData)) {
+    if (!this.isNetworkOnly && Boolean(this.internalData) && !this.isInvalid) {
       return Promise.resolve(this.internalData as TResult);
     }
 
