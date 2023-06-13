@@ -26,7 +26,10 @@ describe('CacheableQuery tests', () => {
     expect(store.data).toBe('foo');
     // повторный запрос должен игнорироваться
     store.sync();
-    expect(store.isLoading).toBe(false);
+
+    expect(store.isLoading, 'повторный запрос должен игнорироваться').toBe(
+      false,
+    );
   });
 
   it('Проверяем отрицательный кейс вызова sync когда передан обработчик ошибки в саму функцию', async () => {
@@ -62,24 +65,93 @@ describe('CacheableQuery tests', () => {
       enabledAutoFetch: true,
     });
 
-    expect(store.isLoading).toBe(false);
-    expect(store.data).toBe(undefined);
-    expect(store.isLoading).toBe(true);
+    expect(
+      store.isLoading,
+      'проверяем что загрузка не началась сама по себе',
+    ).toBe(false);
+
+    expect(store.data, 'эмулируем обращение к data').toBe(undefined);
+    expect(store.isLoading, 'проверяем, что загрузка началась').toBe(true);
     await when(() => !store.isLoading);
     expect(store.data).toStrictEqual('foo');
   });
 
-  it('Проверяем инвалидацию', async () => {
+  it('Проверяем инвалидацию считыванием data', async () => {
     const store = new Query(() => Promise.resolve('foo'));
 
-    expect(store.data).toBe(undefined);
+    expect(store.data, 'проверяем, что данных действительно нет').toBe(
+      undefined,
+    );
+
     store.invalidate();
-    expect(store.isLoading).toBe(false);
-    expect(store.data).toBe(undefined);
-    expect(store.isLoading).toBe(true);
+
+    expect(
+      store.isLoading,
+      'ожидаем, что загрузка не началась сама по себе',
+    ).toBe(false);
+
+    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+
+    expect(
+      store.isLoading,
+      'ожидаем, что после считывания данных загрузка началась',
+    ).toBe(true);
+  });
+
+  it('Проверяем инвалидацию запуском sync', async () => {
+    const store = new Query(() => Promise.resolve('foo'));
+
+    // добавляем данные в стор
+    store.sync();
     await when(() => !store.isLoading);
-    expect(store.isLoading).toBe(false);
-    await when(() => store.data !== undefined);
-    expect(store.data).toBe('foo');
+    expect(store.data, 'проверяем, что данные есть').toBe('foo');
+    store.sync();
+
+    expect(
+      store.isLoading,
+      'ожидаем что загрузка не началась, потому что инвалидация еще не была вызвана',
+    ).toBe(false);
+
+    store.invalidate();
+
+    expect(
+      store.isLoading,
+      'ожидаем, что загрузка не началась сама по себе',
+    ).toBe(false);
+
+    store.sync();
+
+    expect(
+      store.isLoading,
+      'ожидаем, что после последовательного вызова инвалидации и sync загрузка все таки началась',
+    ).toBe(true);
+  });
+
+  it('Проверяем инвалидацию запуском async', async () => {
+    const store = new Query(() => Promise.resolve('foo'));
+
+    // добавляем данные в стор
+    await store.async();
+    expect(store.data, 'проверяем, что данные есть').toBe('foo');
+    store.sync();
+
+    expect(
+      store.isLoading,
+      'ожидаем что загрузка не началась, потому что инвалидация еще не была вызвана',
+    ).toBe(false);
+
+    store.invalidate();
+
+    expect(
+      store.isLoading,
+      'ожидаем, что загрузка не началась сама по себе',
+    ).toBe(false);
+
+    store.async();
+
+    expect(
+      store.isLoading,
+      'ожидаем, что после последовательного вызова инвалидации и async загрузка все таки началась',
+    ).toBe(true);
   });
 });
