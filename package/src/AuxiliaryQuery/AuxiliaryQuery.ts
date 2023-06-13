@@ -36,7 +36,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   /**
    * @description синглтон промис, для устранения гонки запросов
    */
-  private singletonePromise?: Promise<TResult>;
+  private unifiedPromise?: Promise<TResult>;
 
   constructor() {
     makeAutoObservable(this);
@@ -46,12 +46,12 @@ export class AuxiliaryQuery<TResult, TError = void> {
    * @description метод для объединения synс и async логики в одну,
    * чтобы одновременные вызовы sync/async работали бы с одним и тем же инстансом промиса
    */
-  public getSingletonePromise = (executor: Executor<TResult>) => {
+  public getUnifiedPromise = (executor: Executor<TResult>) => {
     // проверяем, если синглтона нет, то надо создать
-    if (!Boolean(this.singletonePromise)) {
+    if (!Boolean(this.unifiedPromise)) {
       this.startLoading();
 
-      this.singletonePromise = executor()
+      this.unifiedPromise = executor()
         .then((resData: TResult) => {
           this.submitSuccess();
 
@@ -63,7 +63,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
           throw e;
         })
         .finally(() => {
-          this.singletonePromise = undefined;
+          this.unifiedPromise = undefined;
 
           runInAction(() => {
             this.isLoading = false;
@@ -71,7 +71,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
         });
     }
 
-    return this.singletonePromise as Promise<TResult>;
+    return this.unifiedPromise as Promise<TResult>;
   };
 
   /**
