@@ -120,7 +120,7 @@ export class Query<TResult, TError = void>
     const { onSuccess, onError } = options || {};
 
     this.auxiliary
-      .getSingletonePromise(this.executor)
+      .getUnifiedPromise(this.executor)
       .then((res) => {
         this.submitSuccess(res);
         onSuccess?.(res);
@@ -144,7 +144,7 @@ export class Query<TResult, TError = void>
     }
 
     return this.auxiliary
-      .getSingletonePromise(this.executor)
+      .getUnifiedPromise(this.executor)
       .then(this.submitSuccess);
   };
 

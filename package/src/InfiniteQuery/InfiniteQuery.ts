@@ -171,7 +171,7 @@ export class InfiniteQuery<TResult, TError = void>
 
       // запускаем запрос с последними параметрами, и флагом необходимости инкремента
       this.auxiliary
-        .getSingletonePromise(this.infiniteExecutor)
+        .getUnifiedPromise(this.infiniteExecutor)
         .then((resData) => {
           this.submitSuccess(resData, undefined, true);
         });
@@ -201,7 +201,7 @@ export class InfiniteQuery<TResult, TError = void>
     this.offset = 0;
 
     this.auxiliary
-      .getSingletonePromise(this.infiniteExecutor)
+      .getUnifiedPromise(this.infiniteExecutor)
       .then((resData) => {
         this.submitSuccess(resData, onSuccess);
       })
@@ -232,7 +232,7 @@ export class InfiniteQuery<TResult, TError = void>
     this.offset = 0;
 
     return this.auxiliary
-      .getSingletonePromise(this.infiniteExecutor)
+      .getUnifiedPromise(this.infiniteExecutor)
       .then((resData) => {
         this.submitSuccess(resData);
 

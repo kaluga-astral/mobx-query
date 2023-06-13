@@ -56,7 +56,7 @@ export class MutationQuery<TResult, TError = void, TExecutorParams = void>
     const { onSuccess, onError, params } = options || {};
 
     this.auxiliary
-      .getSingletonePromise(() => this.executor(params as TExecutorParams))
+      .getUnifiedPromise(() => this.executor(params as TExecutorParams))
       .then((resData) => {
         onSuccess?.(resData);
       })
@@ -74,7 +74,7 @@ export class MutationQuery<TResult, TError = void, TExecutorParams = void>
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = (params: TExecutorParams) => {
-    return this.auxiliary.getSingletonePromise(() => this.executor(params));
+    return this.auxiliary.getUnifiedPromise(() => this.executor(params));
   };
 
   /**
