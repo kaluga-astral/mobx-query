@@ -79,7 +79,7 @@ describe('InfiniteQuery tests', () => {
     expect(store.data).toStrictEqual(['foo']);
   });
 
-  it('Проверяем инкремент', async () => {
+  it('Проверяем fetchMore', async () => {
     const insideExecutor = vi.fn();
 
     const store = new InfiniteQuery(
@@ -107,8 +107,8 @@ describe('InfiniteQuery tests', () => {
     expect(store.isLoading).toBe(false);
     expect(store.data).toStrictEqual(['foo']);
     expect(insideExecutor).toHaveBeenLastCalledWith({ offset: 0, count: 1 });
-    // запускаем инкремент метод
-    store.increment();
+    // запускаем fetchMore метод
+    store.fetchMore();
     expect(store.isLoading).toBe(true);
     expect(store.isEndReached).toBe(false);
     await when(() => !store.isLoading);
@@ -117,8 +117,8 @@ describe('InfiniteQuery tests', () => {
     expect(store.isEndReached).toBe(false);
     // проверяем что данные именно добавились, а не заменились
     expect(store.data).toStrictEqual(['foo', 'foo']);
-    // снова запускаем инкремент
-    store.increment();
+    // снова запускаем fetchMore
+    store.fetchMore();
     expect(store.isLoading).toBe(true);
     expect(store.isEndReached).toBe(false);
     await when(() => !store.isLoading);
@@ -128,7 +128,7 @@ describe('InfiniteQuery tests', () => {
     expect(store.isEndReached).toBe(true);
     expect(store.data).toStrictEqual(['foo', 'foo']);
     // при еще одной попытке сделать запрос
-    store.increment();
+    store.fetchMore();
     // ожидаем что вызов будет проигнорирован, и флаг загрузки false
     expect(store.isLoading).toBe(false);
     expect(store.isEndReached).toBe(true);
