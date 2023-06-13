@@ -19,7 +19,7 @@ import {
  * который будет запрашивать свежие данные, так же будет кешироваться, перезатирая существующий,
  * что приведет к последующему созданию 'cache-first' на основе 'network-only'
  */
-export type FetchPolicy = 'networkOnly' | 'cacheFirst';
+export type FetchPolicy = 'network-only' | 'cache-first';
 
 /**
  * @description стандартный обработчик ошибки запроса,
@@ -147,7 +147,7 @@ export class MobxQuery {
   ) => {
     const keyHash: KeyHash = this.serialize(key);
 
-    if (fetchPolicy === 'cacheFirst' && this.cacheableStores.has(keyHash)) {
+    if (fetchPolicy === 'cache-first' && this.cacheableStores.has(keyHash)) {
       return this.cacheableStores.get(keyHash);
     }
 
