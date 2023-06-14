@@ -156,10 +156,7 @@ export class Query<TResult, TError = void>
    */
   public get data() {
     const shouldSync =
-      this.enabledAutoFetch &&
-      !Boolean(this.internalData) &&
-      !this.isLoading &&
-      !this.isError;
+      this.enabledAutoFetch && !this.isSuccess && !this.isLoading;
 
     if (this.isInvalid || shouldSync) {
       this.proceedSync();

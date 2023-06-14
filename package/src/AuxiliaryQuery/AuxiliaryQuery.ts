@@ -34,7 +34,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   public isSuccess = false;
 
   /**
-   * @description синглтон промис, для устранения гонки запросов
+   * @description единый промис, для устранения гонки запросов
    */
   private unifiedPromise?: Promise<TResult>;
 
@@ -43,8 +43,8 @@ export class AuxiliaryQuery<TResult, TError = void> {
   }
 
   /**
-   * @description метод для объединения synс и async логики в одну,
-   * чтобы одновременные вызовы sync/async работали бы с одним и тем же инстансом промиса
+   * @description метод ответственный за создание единого промиса,
+   * для устранения гонки запросов
    */
   public getUnifiedPromise = (executor: Executor<TResult>) => {
     // проверяем, если синглтона нет, то надо создать
