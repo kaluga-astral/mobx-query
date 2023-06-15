@@ -30,7 +30,7 @@ type OnError<TError = unknown> = (error: TError) => void;
 type KeyHash = string;
 
 type MobxQueryParams = {
-  fetchPolicy: FetchPolicy;
+  fetchPolicy?: FetchPolicy;
   onError?: OnError;
   /**
    * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
@@ -101,13 +101,11 @@ export class MobxQuery {
 
   private serialize = (data: CacheKey | CacheKey[]) => JSON.stringify(data);
 
-  constructor(
-    {
-      onError,
-      fetchPolicy = 'cache-first',
-      enabledAutoFetch = false,
-    } = {} as MobxQueryParams,
-  ) {
+  constructor({
+    onError,
+    fetchPolicy = 'cache-first',
+    enabledAutoFetch = false,
+  }: MobxQueryParams = {}) {
     this.defaultErrorHandler = onError;
     this.defaultFetchPolicy = fetchPolicy;
     this.defaultEnabledAutoFetch = enabledAutoFetch;
