@@ -1,5 +1,12 @@
-import { Query, QueryExecutor, QueryParams } from '../Query';
 import {
+  DataStorageFactory,
+  Query,
+  QueryExecutor,
+  QueryParams,
+} from '../Query';
+import {
+  InfiniteDataStorage,
+  InfiniteDataStorageFactory,
   InfiniteExecutor,
   InfiniteQuery,
   InfiniteQueryParams,
@@ -9,7 +16,7 @@ import {
   MutationQuery,
   MutationQueryParams,
 } from '../MutationQuery';
-import { FetchPolicy } from '../types';
+import { CacheKey, FetchPolicy } from '../types';
 
 /**
  * @description стандартный обработчик ошибки запроса,
@@ -32,11 +39,14 @@ type MobxQueryParams = {
   enabledAutoFetch?: boolean;
 };
 
-type CreateCacheableQueryParams<TResult, TError> = QueryParams<TResult, TError>;
+type CreateCacheableQueryParams<TResult, TError> = Omit<
+  QueryParams<TResult, TError>,
+  'dataStorage'
+>;
 
-type CreateInfiniteQueryParams<TResult, TError> = InfiniteQueryParams<
-  TResult,
-  TError
+type CreateInfiniteQueryParams<TResult, TError> = Omit<
+  InfiniteQueryParams<TResult, TError>,
+  'dataStorage'
 >;
 
 /**
@@ -45,11 +55,6 @@ type CreateInfiniteQueryParams<TResult, TError> = InfiniteQueryParams<
 type CachedQueryStore<TResult, TError> =
   | Query<TResult, TError>
   | InfiniteQuery<TResult, TError>;
-
-/**
- * @description ключ для кешированя квери
- */
-export type CacheKey = string | string[] | number | { [key: string]: CacheKey };
 
 /**
  * @description Сервис, позволяющий кэшировать данные.
@@ -67,6 +72,16 @@ export class MobxQuery {
     KeyHash,
     CachedQueryStore<unknown, unknown>
   >();
+
+  /**
+   * @description фабрика создания хранилищ данных для обычного Query
+   */
+  private queryDataStorageFactory = new DataStorageFactory();
+
+  /**
+   * @description фабрика создания хранилищ данных для Infinite Query
+   */
+  private infiniteQueryDataStorageFactory = new InfiniteDataStorageFactory();
 
   /**
    * @description стандартный обработчик ошибок, будет использован, если не передан другой
@@ -87,7 +102,11 @@ export class MobxQuery {
   private serialize = (data: CacheKey | CacheKey[]) => JSON.stringify(data);
 
   constructor(
-    { onError, fetchPolicy, enabledAutoFetch = false } = {} as MobxQueryParams,
+    {
+      onError,
+      fetchPolicy = 'cache-first',
+      enabledAutoFetch = false,
+    } = {} as MobxQueryParams,
   ) {
     this.defaultErrorHandler = onError;
     this.defaultFetchPolicy = fetchPolicy;
@@ -148,9 +167,11 @@ export class MobxQuery {
     key: CacheKey[],
     executor: QueryExecutor<TResult>,
     params?: CreateCacheableQueryParams<TResult, TError>,
-  ) =>
-    this.getCachedQuery(
-      key,
+  ) => {
+    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy || '';
+
+    return this.getCachedQuery(
+      [...key, fetchPolicy],
       () =>
         new Query(executor, {
           ...params,
@@ -158,9 +179,11 @@ export class MobxQuery {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
-          fetchPolicy: params?.fetchPolicy || this.defaultFetchPolicy,
+          fetchPolicy: fetchPolicy,
+          dataStorage: this.queryDataStorageFactory.getStorage(key),
         }),
     ) as Query<TResult, TError>;
+  };
 
   /**
    * @description метод создания инфинит стора, кешируется
@@ -169,9 +192,11 @@ export class MobxQuery {
     key: CacheKey[],
     executor: InfiniteExecutor<TResult>,
     params?: CreateInfiniteQueryParams<TResult, TError>,
-  ) =>
-    this.getCachedQuery(
-      key,
+  ) => {
+    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy || '';
+
+    return this.getCachedQuery(
+      [...key, fetchPolicy],
       () =>
         new InfiniteQuery(executor, {
           ...params,
@@ -179,9 +204,12 @@ export class MobxQuery {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
-          fetchPolicy: params?.fetchPolicy || this.defaultFetchPolicy,
+          dataStorage: this.infiniteQueryDataStorageFactory.getStorage(
+            key,
+          ) as InfiniteDataStorage<TResult[]>,
         }),
     ) as InfiniteQuery<TResult, TError>;
+  };
 
   /**
    * @description метод создания мутации, не кешируется

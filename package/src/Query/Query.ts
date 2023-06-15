@@ -3,6 +3,8 @@ import { makeAutoObservable } from 'mobx';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 
+import { DataStorage } from './DataStorage';
+
 /**
  * @description исполнитель запроса
  */
@@ -18,6 +20,10 @@ export type QueryParams<TResult, TError> = {
    */
   enabledAutoFetch?: boolean;
   fetchPolicy?: FetchPolicy;
+  /**
+   * @description инстанс хранилища данных
+   */
+  dataStorage: DataStorage<TResult>;
 };
 
 /**
@@ -39,9 +45,9 @@ export class Query<TResult, TError = void>
   private isInvalid: boolean = false;
 
   /**
-   * @description поле, отвечающее за непосредственное хранение данных
+   * @description хранилище данных, для обеспечения синхронизации данных между 'network-only' и 'cache-first' инстансами
    */
-  private internalData: TResult | undefined;
+  private storage: DataStorage<TResult>;
 
   /**
    * @description исполнитель запроса, ожидается,
@@ -70,12 +76,14 @@ export class Query<TResult, TError = void>
       onError,
       enabledAutoFetch,
       fetchPolicy,
-    }: QueryParams<TResult, TError> = {},
+      dataStorage,
+    }: QueryParams<TResult, TError>,
   ) {
     this.executor = executor;
     this.defaultOnError = onError;
     this.enabledAutoFetch = enabledAutoFetch;
     this.defaultFetchPolicy = fetchPolicy;
+    this.storage = dataStorage;
     makeAutoObservable(this);
   }
 
@@ -97,7 +105,7 @@ export class Query<TResult, TError = void>
     if (
       this.isNetworkOnly ||
       this.isInvalid ||
-      !(this.isLoading || Boolean(this.internalData))
+      !(this.isLoading || this.isSuccess)
     ) {
       this.proceedSync(params);
     }
@@ -107,7 +115,7 @@ export class Query<TResult, TError = void>
    * @description обработчик успешного ответа
    */
   private submitSuccess = (resData: TResult) => {
-    this.internalData = resData;
+    this.storage.setData(resData);
     this.isInvalid = false;
 
     return resData;
@@ -139,8 +147,8 @@ export class Query<TResult, TError = void>
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = () => {
-    if (!this.isNetworkOnly && Boolean(this.internalData) && !this.isInvalid) {
-      return Promise.resolve(this.internalData as TResult);
+    if (!this.isNetworkOnly && this.isSuccess && !this.isInvalid) {
+      return Promise.resolve(this.storage.data as TResult);
     }
 
     return this.auxiliary
@@ -163,7 +171,7 @@ export class Query<TResult, TError = void>
     }
 
     // возвращаем имеющиеся данные
-    return this.internalData;
+    return this.storage.data;
   }
 
   /**
