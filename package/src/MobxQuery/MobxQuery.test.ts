@@ -28,6 +28,44 @@ describe('MobxQuery tests', () => {
     );
   });
 
+  it('Проверяем создание сторов с разными fetchPolicy, с одинаковым ключом', async () => {
+    const mobxQuery = new MobxQuery();
+    const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
+      Promise.resolve([]),
+    );
+    const queryB = mobxQuery.createInfiniteQuery(
+      ['foo'],
+      () => Promise.resolve([]),
+      { fetchPolicy: 'cache-first' },
+    );
+    const queryC = mobxQuery.createInfiniteQuery(
+      ['foo'],
+      () => Promise.resolve([]),
+      { fetchPolicy: 'network-only' },
+    );
+
+    const queryD = mobxQuery.createInfiniteQuery(
+      ['foo'],
+      () => Promise.resolve([]),
+      { fetchPolicy: 'network-only' },
+    );
+
+    expect(
+      queryA === queryB,
+      'проверяем что инстантс квери без политики, это тот же инстанс с "cache-first"',
+    ).toBe(true);
+
+    expect(
+      queryB === queryC,
+      'при разных политиках, инстансы сторов должны быть разные',
+    ).toBe(false);
+
+    expect(
+      queryC === queryD,
+      'два "network-only" квери с одним ключом, это один и тот же инстанс',
+    ).toBe(true);
+  });
+
   it('Проверяем работу инвалидации с простыми ключами', async () => {
     const mobxQuery = new MobxQuery();
     const queryAsc = mobxQuery.createInfiniteQuery(
