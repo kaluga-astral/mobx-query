@@ -61,8 +61,8 @@ describe('MobxQuery tests', () => {
     ).toBe(false);
 
     expect(
-      queryC === queryD,
-      'два "network-only" квери с одним ключом, это один и тот же инстанс',
+      queryC !== queryD,
+      'два "network-only" квери с одним ключом, это два разных инстанса',
     ).toBe(true);
   });
 
