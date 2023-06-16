@@ -3,7 +3,7 @@ import { makeAutoObservable } from 'mobx';
 import { CacheKey } from '../types';
 
 /**
- * @description хранилище данных простого Query
+ * @description хранилище данных, предназначено для обеспечения единого интерфейса при работе с данными
  */
 export class DataStorage<TData> {
   /**
