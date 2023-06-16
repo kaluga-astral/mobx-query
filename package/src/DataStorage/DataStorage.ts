@@ -1,22 +1,18 @@
 import { makeAutoObservable } from 'mobx';
 
-import { CacheKey, QueryStorage } from '../../types';
+import { CacheKey } from '../types';
 
 /**
- * @description хранилище данных для InfiniteQuery
+ * @description хранилище данных простого Query
  */
-export class InfiniteDataStorage<TData extends unknown[]>
-  implements QueryStorage<TData>
-{
+export class DataStorage<TData> {
   /**
    * @description поле, отвечающее за непосредственное хранение данных
    */
   private internalData?: TData;
 
-  public id = Math.random();
-
   constructor() {
-    makeAutoObservable(this, { id: false });
+    makeAutoObservable(this);
   }
 
   /**
@@ -34,17 +30,6 @@ export class InfiniteDataStorage<TData extends unknown[]>
   };
 
   /**
-   * @description метод для прибавления нового набора данных к уже имеющимся
-   */
-  public increment = (value: TData) => {
-    if (!this.internalData) {
-      this.setData(value);
-    } else {
-      this.internalData = [...this.internalData, ...value] as TData;
-    }
-  };
-
-  /**
    * @description геттер данных
    */
   public get data() {
@@ -55,11 +40,11 @@ export class InfiniteDataStorage<TData extends unknown[]>
 /**
  * @description фабрика ответственная за создание и хранение экземляров хранилищ
  */
-export class InfiniteDataStorageFactory {
+export class DataStorageFactory {
   /**
    * @description Map хранящий инстансы хранилищ по хэшу ключа
    */
-  private storageMap = new Map<string, InfiniteDataStorage<unknown[]>>();
+  private storageMap = new Map<string, DataStorage<unknown>>();
 
   /**
    * @description фабричный метод получения/создания инстанса хранилища по ключу
@@ -68,9 +53,9 @@ export class InfiniteDataStorageFactory {
     const keyHash = JSON.stringify(key);
 
     if (!this.storageMap.has(keyHash)) {
-      return this.storageMap.set(keyHash, new InfiniteDataStorage());
+      this.storageMap.set(keyHash, new DataStorage());
     }
 
-    return this.storageMap.get(keyHash) as InfiniteDataStorage<TData[]>;
+    return this.storageMap.get(keyHash) as DataStorage<TData>;
   };
 }

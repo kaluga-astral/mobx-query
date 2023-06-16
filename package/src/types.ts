@@ -56,21 +56,3 @@ export type FetchPolicy = 'network-only' | 'cache-first';
  * @description ключ для кешированя
  */
 export type CacheKey = string | string[] | number | { [key: string]: CacheKey };
-
-/**
- * @description общий интерфейс для хранилища данных
- */
-export type QueryStorage<TData> = {
-  /**
-   * @description флаг наличия данных
-   */
-  hasData: boolean;
-  /**
-   * @description метод для установки данных
-   */
-  setData: (data: TData) => void;
-  /**
-   * @description геттер данных
-   */
-  data?: TData;
-};

@@ -2,8 +2,7 @@ import { makeAutoObservable } from 'mobx';
 
 import { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
-
-import { InfiniteDataStorage } from './InfiniteDataStorage';
+import { DataStorage } from '../DataStorage';
 
 export const DEFAULT_INFINITE_ITEMS_COUNT = 30;
 
@@ -38,7 +37,7 @@ export type InfiniteQueryParams<TResult, TError> = {
   /**
    * @description инстанс хранилища данных
    */
-  dataStorage: InfiniteDataStorage<TResult[]>;
+  dataStorage: DataStorage<TResult[]>;
 };
 
 /**
@@ -72,7 +71,7 @@ export class InfiniteQuery<TResult, TError = void>
   /**
    * @description хранилище данных, для обеспечения синхронизации данных между 'network-only' и 'cache-first' инстансами
    */
-  private storage: InfiniteDataStorage<TResult[]>;
+  private storage: DataStorage<TResult[]>;
 
   /**
    * @description флаг того, что мы достигли предела запрашиваемых элементов
@@ -133,8 +132,8 @@ export class InfiniteQuery<TResult, TError = void>
     this.auxiliary.submitSuccess();
     onSuccess?.(result);
 
-    if (isIncrement) {
-      this.storage.increment(result);
+    if (isIncrement && this.storage.hasData) {
+      this.storage.setData([...this.storage.data!, ...result]);
     } else {
       this.storage.setData(result);
     }
