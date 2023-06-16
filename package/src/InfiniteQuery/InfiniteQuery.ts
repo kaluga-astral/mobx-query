@@ -192,11 +192,15 @@ export class InfiniteQuery<TResult, TError = void>
    * @description синхронный метод получения данных
    */
   public sync: Sync<Array<TResult>, TError> = (params) => {
-    if (
+    const canProceed =
+      // если политика 'network-only',
       this.isNetworkOnly ||
+      // или отмечен флаг невалидности данных
       this.isInvalid ||
-      !(this.isLoading || this.isSuccess)
-    ) {
+      // или и не в загрузке и не завершенный
+      !(this.isLoading || this.isSuccess);
+
+    if (canProceed) {
       this.proceedSync(params);
     }
   };

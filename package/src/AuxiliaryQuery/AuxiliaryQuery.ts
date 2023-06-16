@@ -88,6 +88,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
    * @description обработчик ошибки
    */
   public submitError = (e: TError) => {
+    this.isSuccess = false;
     this.isError = true;
     this.error = e;
   };
