@@ -69,7 +69,7 @@ export class InfiniteQuery<TResult, TError = void>
   private executor: InfiniteExecutor<TResult>;
 
   /**
-   * @description хранилище данных, для обеспечения синхронизации данных между 'network-only' и 'cache-first' инстансами
+   * @description хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
    */
   private storage: DataStorage<TResult[]>;
 
@@ -192,15 +192,9 @@ export class InfiniteQuery<TResult, TError = void>
    * @description синхронный метод получения данных
    */
   public sync: Sync<Array<TResult>, TError> = (params) => {
-    const canProceed =
-      // если политика 'network-only',
-      this.isNetworkOnly ||
-      // или отмечен флаг невалидности данных
-      this.isInvalid ||
-      // или и не в загрузке и не завершенный
-      !(this.isLoading || this.isSuccess);
+    const isInstanceAllow = !(this.isLoading || this.isSuccess);
 
-    if (canProceed) {
+    if (this.isNetworkOnly || this.isInvalid || isInstanceAllow) {
       this.proceedSync(params);
     }
   };
