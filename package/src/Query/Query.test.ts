@@ -40,6 +40,72 @@ describe('CacheableQuery tests', () => {
     );
   });
 
+  it('Проверяем работу флагов успешности и ошибки, при успешном запросе', async () => {
+    const store = new Query(() => Promise.resolve('foo'), {
+      dataStorage: getDataStorage(),
+    });
+
+    await store.async();
+    expect(store.isSuccess, 'флаг успешности должен быть включен').toBe(true);
+    expect(store.isError, 'флаг ошибки должен быть выключен').toBe(false);
+  });
+
+  it('Проверяем работу флагов успешности и ошибки, при фейл запросе', async () => {
+    const store = new Query(() => Promise.reject('foo'), {
+      dataStorage: getDataStorage(),
+    });
+
+    await store.async().catch((e) => e);
+    expect(store.isSuccess, 'флаг успешности должен быть выключен').toBe(false);
+    expect(store.isError, 'флаг ошибки должен быть включен').toBe(true);
+  });
+
+  it('Проверяем работу флагов успешности и ошибки, меняющемся поведении', async () => {
+    // эмулируем меняющееся поведение запроса, четные запросы будут падать, нечетные завершаться успешно
+    let counter = 0;
+    const store = new Query(
+      () => {
+        counter++;
+
+        if (counter % 2) {
+          return Promise.resolve('foo');
+        }
+
+        return Promise.reject('bar');
+      },
+      {
+        dataStorage: getDataStorage(),
+        fetchPolicy: 'network-only',
+      },
+    );
+
+    // первый запрос успешный
+    await store.async();
+
+    expect(
+      store.isSuccess,
+      'при успешном запроса, флаг успешности должен быть включен',
+    ).toBe(true);
+
+    expect(
+      store.isError,
+      'при успешном запроса, флаг ошибки должен быть выключен',
+    ).toBe(false);
+
+    // второй запрос зафейлится
+    await store.async().catch((e) => e);
+
+    expect(
+      store.isSuccess,
+      'при фейле запроса, флаг успешности должен переключится в true',
+    ).toBe(false);
+
+    expect(
+      store.isError,
+      'при фейле запроса, флаг ошибки должен переключться в true',
+    ).toBe(true);
+  });
+
   it('Проверяем отрицательный кейс вызова sync когда передан обработчик ошибки в саму функцию', async () => {
     const onError = vi.fn();
     const store = new Query(() => Promise.reject('foo'), {
