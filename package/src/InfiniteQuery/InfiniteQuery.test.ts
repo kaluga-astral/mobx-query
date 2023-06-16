@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
+import { DataStorage } from '../DataStorage';
+
 import { InfiniteQuery } from './InfiniteQuery';
-import { InfiniteDataStorage } from './InfiniteDataStorage';
 
 describe('InfiniteQuery tests', () => {
-  const getDataStorage = () => new InfiniteDataStorage();
+  const getDataStorage = <T = unknown[]>() => new DataStorage<T>();
 
   it('Проверяем инит состояние, пока ничего не запросили', () => {
     const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
@@ -154,7 +155,7 @@ describe('InfiniteQuery tests', () => {
   });
 
   it('Проверяем синхронизацию данных между двумя сторами, если они используют одно хранилище', async () => {
-    const unifiedDataStorage = getDataStorage();
+    const unifiedDataStorage = getDataStorage<string[]>();
 
     const storeA = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: unifiedDataStorage,

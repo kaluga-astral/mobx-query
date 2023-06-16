@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
+import { DataStorage } from '../DataStorage';
+
 import { Query } from './Query';
-import { DataStorage } from './DataStorage';
 
 describe('CacheableQuery tests', () => {
   const getDataStorage = () => new DataStorage();
