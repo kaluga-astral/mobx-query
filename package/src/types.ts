@@ -51,3 +51,8 @@ export type QueryBaseActions<TResult, TError, TExecutorParams = void> = {
  * @kind 'network-only' - данные всегда беруться из сети, при этом ответ записывается в кэш
  */
 export type FetchPolicy = 'network-only' | 'cache-first';
+
+/**
+ * @description ключ для кешированя
+ */
+export type CacheKey = string | string[] | number | { [key: string]: CacheKey };

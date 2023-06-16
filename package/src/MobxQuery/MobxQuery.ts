@@ -9,7 +9,8 @@ import {
   MutationQuery,
   MutationQueryParams,
 } from '../MutationQuery';
-import { FetchPolicy } from '../types';
+import { CacheKey, FetchPolicy } from '../types';
+import { DataStorageFactory } from '../DataStorage';
 
 /**
  * @description стандартный обработчик ошибки запроса,
@@ -23,7 +24,7 @@ type OnError<TError = unknown> = (error: TError) => void;
 type KeyHash = string;
 
 type MobxQueryParams = {
-  fetchPolicy: FetchPolicy;
+  fetchPolicy?: FetchPolicy;
   onError?: OnError;
   /**
    * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
@@ -32,11 +33,14 @@ type MobxQueryParams = {
   enabledAutoFetch?: boolean;
 };
 
-type CreateCacheableQueryParams<TResult, TError> = QueryParams<TResult, TError>;
+type CreateCacheableQueryParams<TResult, TError> = Omit<
+  QueryParams<TResult, TError>,
+  'dataStorage'
+>;
 
-type CreateInfiniteQueryParams<TResult, TError> = InfiniteQueryParams<
-  TResult,
-  TError
+type CreateInfiniteQueryParams<TResult, TError> = Omit<
+  InfiniteQueryParams<TResult, TError>,
+  'dataStorage'
 >;
 
 /**
@@ -45,11 +49,6 @@ type CreateInfiniteQueryParams<TResult, TError> = InfiniteQueryParams<
 type CachedQueryStore<TResult, TError> =
   | Query<TResult, TError>
   | InfiniteQuery<TResult, TError>;
-
-/**
- * @description ключ для кешированя квери
- */
-export type CacheKey = string | string[] | number | { [key: string]: CacheKey };
 
 /**
  * @description Сервис, позволяющий кэшировать данные.
@@ -69,6 +68,16 @@ export class MobxQuery {
   >();
 
   /**
+   * @description фабрика создания хранилищ данных для обычного Query
+   */
+  private queryDataStorageFactory = new DataStorageFactory();
+
+  /**
+   * @description фабрика создания хранилищ данных для Infinite Query
+   */
+  private infiniteQueryDataStorageFactory = new DataStorageFactory();
+
+  /**
    * @description стандартный обработчик ошибок, будет использован, если не передан другой
    */
   private readonly defaultErrorHandler?: OnError;
@@ -86,9 +95,11 @@ export class MobxQuery {
 
   private serialize = (data: CacheKey | CacheKey[]) => JSON.stringify(data);
 
-  constructor(
-    { onError, fetchPolicy, enabledAutoFetch = false } = {} as MobxQueryParams,
-  ) {
+  constructor({
+    onError,
+    fetchPolicy = 'cache-first',
+    enabledAutoFetch = false,
+  }: MobxQueryParams = {}) {
     this.defaultErrorHandler = onError;
     this.defaultFetchPolicy = fetchPolicy;
     this.defaultEnabledAutoFetch = enabledAutoFetch;
@@ -122,7 +133,12 @@ export class MobxQuery {
   private getCachedQuery = <TResult, TError>(
     key: CacheKey[],
     createStore: () => CachedQueryStore<TResult, TError>,
+    fetchPolicy: FetchPolicy,
   ) => {
+    if (fetchPolicy === 'network-only') {
+      return createStore();
+    }
+
     const keyHash: KeyHash = this.serialize(key);
 
     if (this.cacheableStores.has(keyHash)) {
@@ -148,8 +164,10 @@ export class MobxQuery {
     key: CacheKey[],
     executor: QueryExecutor<TResult>,
     params?: CreateCacheableQueryParams<TResult, TError>,
-  ) =>
-    this.getCachedQuery(
+  ) => {
+    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy;
+
+    return this.getCachedQuery(
       key,
       () =>
         new Query(executor, {
@@ -158,9 +176,12 @@ export class MobxQuery {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
-          fetchPolicy: params?.fetchPolicy || this.defaultFetchPolicy,
+          fetchPolicy: fetchPolicy,
+          dataStorage: this.queryDataStorageFactory.getStorage(key),
         }),
+      fetchPolicy,
     ) as Query<TResult, TError>;
+  };
 
   /**
    * @description метод создания инфинит стора, кешируется
@@ -169,8 +190,10 @@ export class MobxQuery {
     key: CacheKey[],
     executor: InfiniteExecutor<TResult>,
     params?: CreateInfiniteQueryParams<TResult, TError>,
-  ) =>
-    this.getCachedQuery(
+  ) => {
+    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy || '';
+
+    return this.getCachedQuery(
       key,
       () =>
         new InfiniteQuery(executor, {
@@ -179,9 +202,12 @@ export class MobxQuery {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
-          fetchPolicy: params?.fetchPolicy || this.defaultFetchPolicy,
+          dataStorage: this.infiniteQueryDataStorageFactory.getStorage(key),
+          fetchPolicy: fetchPolicy,
         }),
+      fetchPolicy,
     ) as InfiniteQuery<TResult, TError>;
+  };
 
   /**
    * @description метод создания мутации, не кешируется

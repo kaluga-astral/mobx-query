@@ -53,12 +53,14 @@ export class AuxiliaryQuery<TResult, TError = void> {
 
       this.unifiedPromise = executor()
         .then((resData: TResult) => {
-          this.submitSuccess();
+          runInAction(this.submitSuccess);
 
           return resData;
         })
         .catch((e) => {
-          this.submitError(e);
+          runInAction(() => {
+            this.submitError(e);
+          });
 
           throw e;
         })
@@ -78,20 +80,17 @@ export class AuxiliaryQuery<TResult, TError = void> {
    * @description обработчик успешного ответа
    */
   public submitSuccess = () => {
-    runInAction(() => {
-      this.isError = false;
-      this.isSuccess = true;
-    });
+    this.isError = false;
+    this.isSuccess = true;
   };
 
   /**
    * @description обработчик ошибки
    */
   public submitError = (e: TError) => {
-    runInAction(() => {
-      this.isError = true;
-      this.error = e;
-    });
+    this.isSuccess = false;
+    this.isError = true;
+    this.error = e;
   };
 
   /**

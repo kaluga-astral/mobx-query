@@ -2,6 +2,7 @@ import { makeAutoObservable } from 'mobx';
 
 import { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
+import { DataStorage } from '../DataStorage';
 
 export const DEFAULT_INFINITE_ITEMS_COUNT = 30;
 
@@ -33,6 +34,10 @@ export type InfiniteQueryParams<TResult, TError> = {
    */
   enabledAutoFetch?: boolean;
   fetchPolicy?: FetchPolicy;
+  /**
+   * @description инстанс хранилища данных
+   */
+  dataStorage: DataStorage<TResult[]>;
 };
 
 /**
@@ -63,7 +68,10 @@ export class InfiniteQuery<TResult, TError = void>
    */
   private executor: InfiniteExecutor<TResult>;
 
-  private internalData: Array<TResult> | undefined;
+  /**
+   * @description хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
+   */
+  private storage: DataStorage<TResult[]>;
 
   /**
    * @description флаг того, что мы достигли предела запрашиваемых элементов
@@ -97,8 +105,10 @@ export class InfiniteQuery<TResult, TError = void>
       onError,
       enabledAutoFetch,
       fetchPolicy,
-    }: InfiniteQueryParams<TResult, TError> = {},
+      dataStorage,
+    }: InfiniteQueryParams<TResult, TError>,
   ) {
+    this.storage = dataStorage;
     this.incrementCount = incrementCount;
     this.executor = executor;
     this.defaultOnError = onError;
@@ -115,17 +125,17 @@ export class InfiniteQuery<TResult, TError = void>
    * @description обработчик успешного запроса, проверяет что мы достигли предела
    */
   private submitSuccess = (
-    result: Array<TResult>,
-    onSuccess?: (res: Array<TResult>) => void,
+    result: TResult[],
+    onSuccess?: (res: TResult[]) => void,
     isIncrement?: boolean,
   ) => {
     this.auxiliary.submitSuccess();
     onSuccess?.(result);
 
-    if (isIncrement && Array.isArray(this.internalData)) {
-      this.internalData = [...this.internalData, ...result];
+    if (isIncrement && this.storage.hasData) {
+      this.storage.setData([...this.storage.data!, ...result]);
     } else {
-      this.internalData = result;
+      this.storage.setData(result);
     }
 
     this.isInvalid = false;
@@ -165,7 +175,7 @@ export class InfiniteQuery<TResult, TError = void>
    */
   public fetchMore = () => {
     // если мы еще не достигли предела
-    if (!this.isEndReached && this.internalData) {
+    if (!this.isEndReached && this.storage.data) {
       // прибавляем к офсету число запрашиваемых элементов
       this.offset += this.incrementCount;
 
@@ -182,11 +192,9 @@ export class InfiniteQuery<TResult, TError = void>
    * @description синхронный метод получения данных
    */
   public sync: Sync<Array<TResult>, TError> = (params) => {
-    if (
-      this.isNetworkOnly ||
-      this.isInvalid ||
-      !(this.isLoading || Boolean(this.internalData))
-    ) {
+    const isInstanceAllow = !(this.isLoading || this.isSuccess);
+
+    if (this.isNetworkOnly || this.isInvalid || isInstanceAllow) {
       this.proceedSync(params);
     }
   };
@@ -221,12 +229,8 @@ export class InfiniteQuery<TResult, TError = void>
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = () => {
-    if (
-      !this.isNetworkOnly &&
-      Array.isArray(this.internalData) &&
-      !this.isInvalid
-    ) {
-      return Promise.resolve(this.internalData);
+    if (!this.isNetworkOnly && this.isSuccess && !this.isInvalid) {
+      return Promise.resolve(this.storage.data!);
     }
 
     this.offset = 0;
@@ -260,7 +264,7 @@ export class InfiniteQuery<TResult, TError = void>
     }
 
     // возвращаем имеющиеся данные
-    return this.internalData;
+    return this.storage.data;
   }
 
   /**
