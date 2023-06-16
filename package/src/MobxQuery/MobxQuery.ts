@@ -1,12 +1,5 @@
+import { Query, QueryExecutor, QueryParams } from '../Query';
 import {
-  DataStorageFactory,
-  Query,
-  QueryExecutor,
-  QueryParams,
-} from '../Query';
-import {
-  InfiniteDataStorage,
-  InfiniteDataStorageFactory,
   InfiniteExecutor,
   InfiniteQuery,
   InfiniteQueryParams,
@@ -17,6 +10,7 @@ import {
   MutationQueryParams,
 } from '../MutationQuery';
 import { CacheKey, FetchPolicy } from '../types';
+import { DataStorageFactory } from '../DataStorage';
 
 /**
  * @description стандартный обработчик ошибки запроса,
@@ -81,7 +75,7 @@ export class MobxQuery {
   /**
    * @description фабрика создания хранилищ данных для Infinite Query
    */
-  private infiniteQueryDataStorageFactory = new InfiniteDataStorageFactory();
+  private infiniteQueryDataStorageFactory = new DataStorageFactory();
 
   /**
    * @description стандартный обработчик ошибок, будет использован, если не передан другой
@@ -166,7 +160,7 @@ export class MobxQuery {
     executor: QueryExecutor<TResult>,
     params?: CreateCacheableQueryParams<TResult, TError>,
   ) => {
-    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy || '';
+    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy;
 
     return this.getCachedQuery(
       [...key, fetchPolicy],
@@ -202,9 +196,7 @@ export class MobxQuery {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
-          dataStorage: this.infiniteQueryDataStorageFactory.getStorage(
-            key,
-          ) as InfiniteDataStorage<TResult[]>,
+          dataStorage: this.infiniteQueryDataStorageFactory.getStorage(key),
         }),
     ) as InfiniteQuery<TResult, TError>;
   };

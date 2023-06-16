@@ -2,8 +2,7 @@ import { makeAutoObservable } from 'mobx';
 
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
-
-import { DataStorage } from './DataStorage';
+import { DataStorage } from '../DataStorage';
 
 /**
  * @description исполнитель запроса
