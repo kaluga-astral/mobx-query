@@ -133,7 +133,12 @@ export class MobxQuery {
   private getCachedQuery = <TResult, TError>(
     key: CacheKey[],
     createStore: () => CachedQueryStore<TResult, TError>,
+    fetchPolicy: FetchPolicy,
   ) => {
+    if (fetchPolicy === 'network-only') {
+      return createStore();
+    }
+
     const keyHash: KeyHash = this.serialize(key);
 
     if (this.cacheableStores.has(keyHash)) {
@@ -163,7 +168,7 @@ export class MobxQuery {
     const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy;
 
     return this.getCachedQuery(
-      [...key, fetchPolicy],
+      key,
       () =>
         new Query(executor, {
           ...params,
@@ -174,6 +179,7 @@ export class MobxQuery {
           fetchPolicy: fetchPolicy,
           dataStorage: this.queryDataStorageFactory.getStorage(key),
         }),
+      fetchPolicy,
     ) as Query<TResult, TError>;
   };
 
@@ -188,7 +194,7 @@ export class MobxQuery {
     const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy || '';
 
     return this.getCachedQuery(
-      [...key, fetchPolicy],
+      key,
       () =>
         new InfiniteQuery(executor, {
           ...params,
@@ -197,7 +203,9 @@ export class MobxQuery {
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
           dataStorage: this.infiniteQueryDataStorageFactory.getStorage(key),
+          fetchPolicy: fetchPolicy,
         }),
+      fetchPolicy,
     ) as InfiniteQuery<TResult, TError>;
   };
 
