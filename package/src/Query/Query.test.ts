@@ -33,7 +33,7 @@ describe('Query', () => {
     expect(store.data).toBe('foo');
   });
 
-  it('isSuccess+isError - success', async () => {
+  it('isSuccess:isError: При успешном запросе устанавливаются соответствующие флаги', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
@@ -43,7 +43,7 @@ describe('Query', () => {
     expect(store.isError, 'флаг ошибки должен быть выключен').toBe(false);
   });
 
-  it('isSuccess+isError - fail', async () => {
+  it('isSuccess:isError При провальном запросе устанавливаются соответствующие флаги', async () => {
     const store = new Query(() => Promise.reject('foo'), {
       dataStorage: getDataStorage(),
     });
@@ -53,7 +53,7 @@ describe('Query', () => {
     expect(store.isError, 'флаг ошибки должен быть включен').toBe(true);
   });
 
-  it('isSuccess+isError:fetchPolicy=network-only: флаги переключаются в соответствующее значение, в зависимости от ответа', async () => {
+  it('isSuccess:isError:fetchPolicy=network-only: флаги переключаются в соответствующее значение, в зависимости от ответа', async () => {
     // эмулируем меняющееся поведение запроса, четные запросы будут падать, нечетные завершаться успешно
     let counter = 0;
     const store = new Query(
@@ -99,7 +99,7 @@ describe('Query', () => {
     ).toBe(true);
   });
 
-  it('sync+onError: Вызывается обработчик ошибки', async () => {
+  it('sync:onError: Вызывается обработчик ошибки', async () => {
     const onError = vi.fn();
     const store = new Query(() => Promise.reject('foo'), {
       dataStorage: getDataStorage(),
@@ -114,7 +114,7 @@ describe('Query', () => {
     expect(onError).toBeCalledWith('foo');
   });
 
-  it('sync+defaultOnError: вызывается обработчик ошибки по умолчанию', async () => {
+  it('sync:defaultOnError: вызывается обработчик ошибки по умолчанию', async () => {
     const onDefaultError = vi.fn();
     const store = new Query(() => Promise.reject('foo'), {
       onError: onDefaultError,
@@ -140,7 +140,7 @@ describe('Query', () => {
     expect(store.data).toStrictEqual('foo');
   });
 
-  it('invalidate+data:fetchPolicy=cache-first: Проверяем инвалидацию считыванием data', async () => {
+  it('invalidate:data:fetchPolicy=cache-first: Проверяем инвалидацию считыванием data', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
@@ -160,7 +160,7 @@ describe('Query', () => {
     ).toBe(true);
   });
 
-  it('invalidate+sync:fetchPolicy=cache-first: Проверяем инвалидацию запуском sync', async () => {
+  it('invalidate:sync:fetchPolicy=cache-first: после инвалидации запуск sync приводит к перезапросу', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
@@ -191,7 +191,7 @@ describe('Query', () => {
     ).toBe(true);
   });
 
-  it('invalidate+async:fetchPolicy=cache-first: Проверяем инвалидацию запуском async', async () => {
+  it('invalidate:async:fetchPolicy=cache-first: Проверяем инвалидацию запуском async', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });

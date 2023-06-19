@@ -7,11 +7,11 @@ const checkLoading = (items: { isLoading: boolean }[]) =>
   items.every((item) => item.isLoading === false);
 
 describe('MobxQuery', () => {
-  it('Cоздание сторов', async () => {
+  it('Сторы с разными ключами отличаются, с одинаковыми совпадают', async () => {
     const mobxQuery = new MobxQuery();
-    const objKey = ['foo', 'bar'];
-    const queryA = mobxQuery.createInfiniteQuery([objKey, { foo: 'bar' }], () =>
-      Promise.resolve([]),
+    const queryA = mobxQuery.createInfiniteQuery(
+      [['foo', 'bar'], { foo: 'bar' }],
+      () => Promise.resolve([]),
     );
     const queryB = mobxQuery.createInfiniteQuery(['bar'], () =>
       Promise.resolve([]),
@@ -28,7 +28,7 @@ describe('MobxQuery', () => {
     );
   });
 
-  it('Создание сторов с разными fetchPolicy, с одинаковым ключом', async () => {
+  it('Сторы с разными fetchPolicy и с одинаковым ключом отличаются', async () => {
     const mobxQuery = new MobxQuery();
     const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
       Promise.resolve([]),

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DataStorage, DataStorageFactory } from './DataStorage';
 
 describe('DataStorage', () => {
-  it('DataStorage Проверяем установку данных и работу флага', () => {
+  it('Данные меняются, флаг наличия данных меняется', () => {
     const storage = new DataStorage();
 
     expect(storage.data, 'данных изначально нет').toBe(undefined);
@@ -12,21 +12,24 @@ describe('DataStorage', () => {
     expect(storage.hasData, 'флаг данных включен').toBe(true);
     expect(storage.data, 'данные появились').toStrictEqual(['foo']);
   });
+});
 
-  it('DataStorageFactory Проверяем создание инстансов хранилищ', () => {
+describe('DataStorageFactory', () => {
+  it('Инстансы хранилищ с одинаковым ключом совпадают', () => {
     const factory = new DataStorageFactory();
 
     const storageA = factory.getStorage(['foo']);
     const storageB = factory.getStorage(['foo']);
-    const storageC = factory.getStorage(['bar']);
 
-    expect(
-      storageA === storageB,
-      'хранилища с одинаковым ключом одинаковые',
-    ).toBe(true);
+    expect(storageA === storageB).toBe(true);
+  });
 
-    expect(storageA !== storageC, 'хранилища с разными ключами разные').toBe(
-      true,
-    );
+  it('Инстансы хранилищ с разными ключами отличаются', () => {
+    const factory = new DataStorageFactory();
+
+    const storageA = factory.getStorage(['foo']);
+    const storageB = factory.getStorage(['bar']);
+
+    expect(storageA !== storageB).toBe(true);
   });
 });
