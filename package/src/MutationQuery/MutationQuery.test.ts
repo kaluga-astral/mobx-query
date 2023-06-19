@@ -3,7 +3,7 @@ import { when } from 'mobx';
 
 import { MutationQuery } from './MutationQuery';
 
-describe('MutationQuery tests', () => {
+describe('MutationQuery', () => {
   it('Проверяем инит состояние, пока ничего не запросили', () => {
     const store = new MutationQuery(() => Promise.resolve('foo'));
 

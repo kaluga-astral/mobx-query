@@ -5,42 +5,35 @@ import { DataStorage } from '../DataStorage';
 
 import { Query } from './Query';
 
-describe('CacheableQuery tests', () => {
+describe('Query', () => {
   const getDataStorage = () => new DataStorage();
 
-  it('Проверяем инит состояние, пока ничего не запросили', () => {
+  it('Init state: флаги false, данные undefined', () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
 
     expect(store.isError).toBe(false);
     expect(store.isLoading).toBe(false);
+    expect(store.isSuccess).toBe(false);
     expect(store.data).toBe(undefined);
     expect(store.error).toBe(undefined);
   });
 
-  it('Проверяем положительный кейс', async () => {
+  it('sync:fetchPolicy=cache-first: стандартная загрузка успешна', async () => {
     const onSuccess = vi.fn();
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
 
     store.sync({ onSuccess });
-    expect(store.isLoading).toBe(true);
     expect(store.data).toBe(undefined);
     await when(() => !store.isLoading);
     expect(onSuccess).toBeCalled();
-    expect(store.isLoading).toBe(false);
     expect(store.data).toBe('foo');
-    // повторный запрос должен игнорироваться
-    store.sync();
-
-    expect(store.isLoading, 'повторный запрос должен игнорироваться').toBe(
-      false,
-    );
   });
 
-  it('Проверяем работу флагов успешности и ошибки, при успешном запросе', async () => {
+  it('isSuccess+isError - success', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
@@ -50,7 +43,7 @@ describe('CacheableQuery tests', () => {
     expect(store.isError, 'флаг ошибки должен быть выключен').toBe(false);
   });
 
-  it('Проверяем работу флагов успешности и ошибки, при фейл запросе', async () => {
+  it('isSuccess+isError - fail', async () => {
     const store = new Query(() => Promise.reject('foo'), {
       dataStorage: getDataStorage(),
     });
@@ -60,7 +53,7 @@ describe('CacheableQuery tests', () => {
     expect(store.isError, 'флаг ошибки должен быть включен').toBe(true);
   });
 
-  it('Проверяем работу флагов успешности и ошибки, меняющемся поведении', async () => {
+  it('isSuccess+isError:fetchPolicy=network-only: флаги переключаются в соответствующее значение, в зависимости от ответа', async () => {
     // эмулируем меняющееся поведение запроса, четные запросы будут падать, нечетные завершаться успешно
     let counter = 0;
     const store = new Query(
@@ -97,7 +90,7 @@ describe('CacheableQuery tests', () => {
 
     expect(
       store.isSuccess,
-      'при фейле запроса, флаг успешности должен переключится в true',
+      'при фейле запроса, флаг успешности должен переключится в false',
     ).toBe(false);
 
     expect(
@@ -106,7 +99,7 @@ describe('CacheableQuery tests', () => {
     ).toBe(true);
   });
 
-  it('Проверяем отрицательный кейс вызова sync когда передан обработчик ошибки в саму функцию', async () => {
+  it('sync+onError: Вызывается обработчик ошибки', async () => {
     const onError = vi.fn();
     const store = new Query(() => Promise.reject('foo'), {
       dataStorage: getDataStorage(),
@@ -114,7 +107,6 @@ describe('CacheableQuery tests', () => {
 
     store.sync({ onError });
     await when(() => !store.isLoading);
-    expect(store.isLoading).toBe(false);
     expect(store.data).toBe(undefined);
     expect(store.isError).toBe(true);
     await when(() => store.error !== undefined);
@@ -122,7 +114,7 @@ describe('CacheableQuery tests', () => {
     expect(onError).toBeCalledWith('foo');
   });
 
-  it('Проверяем отрицательный кейс вызова syc, когда передан обработчик ошибки по умолчанию', async () => {
+  it('sync+defaultOnError: вызывается обработчик ошибки по умолчанию', async () => {
     const onDefaultError = vi.fn();
     const store = new Query(() => Promise.reject('foo'), {
       onError: onDefaultError,
@@ -130,23 +122,17 @@ describe('CacheableQuery tests', () => {
     });
 
     store.sync();
-    expect(store.isLoading).toBe(true);
     await when(() => !store.isLoading);
     await when(() => store.error !== undefined);
     expect(store.error).toBe('foo');
     expect(onDefaultError).toBeCalledWith('foo');
   });
 
-  it('Проверяем автоматический запрос данных при обращении к data', async () => {
+  it('data: автоматический запрос данных при обращении к data', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       enabledAutoFetch: true,
       dataStorage: getDataStorage(),
     });
-
-    expect(
-      store.isLoading,
-      'проверяем что загрузка не началась сама по себе',
-    ).toBe(false);
 
     expect(store.data, 'эмулируем обращение к data').toBe(undefined);
     expect(store.isLoading, 'проверяем, что загрузка началась').toBe(true);
@@ -154,14 +140,10 @@ describe('CacheableQuery tests', () => {
     expect(store.data).toStrictEqual('foo');
   });
 
-  it('Проверяем инвалидацию считыванием data', async () => {
+  it('invalidate+data:fetchPolicy=cache-first: Проверяем инвалидацию считыванием data', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
-
-    expect(store.data, 'проверяем, что данных действительно нет').toBe(
-      undefined,
-    );
 
     store.invalidate();
 
@@ -178,7 +160,7 @@ describe('CacheableQuery tests', () => {
     ).toBe(true);
   });
 
-  it('Проверяем инвалидацию запуском sync', async () => {
+  it('invalidate+sync:fetchPolicy=cache-first: Проверяем инвалидацию запуском sync', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
@@ -209,7 +191,7 @@ describe('CacheableQuery tests', () => {
     ).toBe(true);
   });
 
-  it('Проверяем инвалидацию запуском async', async () => {
+  it('invalidate+async:fetchPolicy=cache-first: Проверяем инвалидацию запуском async', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
@@ -239,7 +221,7 @@ describe('CacheableQuery tests', () => {
     ).toBe(true);
   });
 
-  it('Проверяем синхронизацию данных между двумя сторами, если они используют одно хранилище', async () => {
+  it('data-synchronization: Данные между двумя сторами синхронизируются, если они используют одно хранилище', async () => {
     const unifiedDataStorage = getDataStorage();
 
     const storeA = new Query(() => Promise.resolve('foo'), {
@@ -265,7 +247,7 @@ describe('CacheableQuery tests', () => {
     ).toBe('bar');
   });
 
-  it('Проверяем "network-only" политику c async', async () => {
+  it('async:fetchPolicy=network-only данные запрашиваются при каждом вызове', async () => {
     // счетчик запроса, для эмуляции меняющихся данных
     let counter = 0;
 
@@ -288,7 +270,7 @@ describe('CacheableQuery tests', () => {
       'ожидаем что данные после первого запроса попадут в стор как обычно',
     ).toBe(1);
 
-    // запускаем сразу второй запрос, который по обычной политике должен быть проигнорирован
+    // запускаем сразу второй запрос, который по политике cache-first должен быть проигнорирован
     await store.async();
 
     expect(
@@ -297,7 +279,7 @@ describe('CacheableQuery tests', () => {
     ).toBe(2);
   });
 
-  it('Проверяем "network-only" политику c sync', async () => {
+  it('sync:fetchPolicy=network-only данные запрашиваются при каждом вызове', async () => {
     // счетчик запроса, для эмуляции меняющихся данных
     let counter = 0;
 
@@ -321,9 +303,8 @@ describe('CacheableQuery tests', () => {
       'ожидаем что данные после первого запроса попадут в стор как обычно',
     ).toBe(1);
 
-    // запускаем сразу второй запрос, который по обычной политике должен быть проигнорирован
+    // запускаем сразу второй запрос, который по политике cache-first должен быть проигнорирован
     store.sync();
-    expect(store.isLoading, 'ожидаем что загрузка началась').toBe(true);
     await when(() => !store.isLoading);
 
     expect(

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DataStorage, DataStorageFactory } from './DataStorage';
 
-describe('DataStorage tests', () => {
+describe('DataStorage', () => {
   it('DataStorage Проверяем установку данных и работу флага', () => {
     const storage = new DataStorage();
 
@@ -19,8 +19,6 @@ describe('DataStorage tests', () => {
     const storageA = factory.getStorage(['foo']);
     const storageB = factory.getStorage(['foo']);
     const storageC = factory.getStorage(['bar']);
-
-    console.log(storageA, storageB);
 
     expect(
       storageA === storageB,

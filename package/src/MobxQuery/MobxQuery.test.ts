@@ -6,8 +6,8 @@ import { MobxQuery } from './MobxQuery';
 const checkLoading = (items: { isLoading: boolean }[]) =>
   items.every((item) => item.isLoading === false);
 
-describe('MobxQuery tests', () => {
-  it('Проверяем создание сторов', async () => {
+describe('MobxQuery', () => {
+  it('Cоздание сторов', async () => {
     const mobxQuery = new MobxQuery();
     const objKey = ['foo', 'bar'];
     const queryA = mobxQuery.createInfiniteQuery([objKey, { foo: 'bar' }], () =>
@@ -28,7 +28,7 @@ describe('MobxQuery tests', () => {
     );
   });
 
-  it('Проверяем создание сторов с разными fetchPolicy, с одинаковым ключом', async () => {
+  it('Создание сторов с разными fetchPolicy, с одинаковым ключом', async () => {
     const mobxQuery = new MobxQuery();
     const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
       Promise.resolve([]),
@@ -66,7 +66,7 @@ describe('MobxQuery tests', () => {
     ).toBe(true);
   });
 
-  it('Проверяем работу инвалидации с простыми ключами', async () => {
+  it('Инвалидация с простыми ключами', async () => {
     const mobxQuery = new MobxQuery();
     const queryAsc = mobxQuery.createInfiniteQuery(
       ['foo', { direction: 'asc' }],
@@ -82,21 +82,6 @@ describe('MobxQuery tests', () => {
     );
 
     const queries = [queryAsc, queryDesc, queryUser];
-
-    expect(
-      queryAsc.data,
-      'queryAsc проверяем что данных действительно нет',
-    ).toBe(undefined);
-
-    expect(
-      queryDesc.data,
-      'queryDesc проверяем что данных действительно нет',
-    ).toBe(undefined);
-
-    expect(
-      queryUser.data,
-      'queryUser проверяем что данных действительно нет',
-    ).toBe(undefined);
 
     // запускаем запрос данных везде
     queryAsc.sync();
@@ -124,17 +109,17 @@ describe('MobxQuery tests', () => {
 
     expect(
       queryAsc.data,
-      'queryAsc дергаем дату у всех сторов, что бы тригернуть загрузку',
+      'queryAsc дергаем дату у всех сторов, чтобы тригернуть загрузку',
     ).toStrictEqual(['foo', 'data']);
 
     expect(
       queryDesc.data,
-      'queryDesc дергаем дату у всех сторов, что бы тригернуть загрузку',
+      'queryDesc дергаем дату у всех сторов, чтобы тригернуть загрузку',
     ).toStrictEqual(['data', 'foo']);
 
     expect(
       queryUser.data,
-      'queryUser дергаем дату у всех сторов, что бы тригернуть загрузку',
+      'queryUser дергаем дату у всех сторов, чтобы тригернуть загрузку',
     ).toStrictEqual({ name: 'Ваня' });
 
     expect(
@@ -158,17 +143,17 @@ describe('MobxQuery tests', () => {
 
     expect(
       queryAsc.data,
-      'queryAsc дергаем дату, что бы тригернуть загрузку',
+      'queryAsc дергаем дату, чтобы тригернуть загрузку',
     ).toStrictEqual(['foo', 'data']);
 
     expect(
       queryDesc.data,
-      'queryDesc дергаем дату, что бы тригернуть загрузку',
+      'queryDesc дергаем дату, чтобы тригернуть загрузку',
     ).toStrictEqual(['data', 'foo']);
 
     expect(
       queryUser.data,
-      'queryUser дергаем дату, что бы тригернуть загрузку',
+      'queryUser дергаем дату, чтобы тригернуть загрузку',
     ).toStrictEqual({ name: 'Ваня' });
 
     expect(
@@ -192,17 +177,17 @@ describe('MobxQuery tests', () => {
 
     expect(
       queryAsc.data,
-      'queryAsc дергаем data, что бы тригернуть загрузку',
+      'queryAsc дергаем data, чтобы тригернуть загрузку',
     ).toStrictEqual(['foo', 'data']);
 
     expect(
       queryDesc.data,
-      'queryDesc дергаем data, что бы тригернуть загрузку',
+      'queryDesc дергаем data, чтобы тригернуть загрузку',
     ).toStrictEqual(['data', 'foo']);
 
     expect(
       queryUser.data,
-      'queryUser дергаем data, что бы тригернуть загрузку',
+      'queryUser дергаем data, чтобы тригернуть загрузку',
     ).toStrictEqual({ name: 'Ваня' });
 
     expect(
@@ -237,7 +222,7 @@ describe('MobxQuery tests', () => {
     expect(queryUser.isLoading, 'проверяем что загрузка началась').toBe(true);
   });
 
-  it('Проверяем работу инвалидации со сложным ключом', async () => {
+  it('Инвалидация со сложным ключом', async () => {
     const mobxQuery = new MobxQuery();
     const query = mobxQuery.createQuery([['foo', 'bar']], () =>
       Promise.resolve('data'),

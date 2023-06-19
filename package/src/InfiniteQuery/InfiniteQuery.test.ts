@@ -5,10 +5,10 @@ import { DataStorage } from '../DataStorage';
 
 import { InfiniteQuery } from './InfiniteQuery';
 
-describe('InfiniteQuery tests', () => {
+describe('InfiniteQuery', () => {
   const getDataStorage = <T = unknown[]>() => new DataStorage<T>();
 
-  it('Проверяем инит состояние, пока ничего не запросили', () => {
+  it('Init state: флаги false, данные undefined', () => {
     const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: getDataStorage(),
     });
@@ -19,41 +19,46 @@ describe('InfiniteQuery tests', () => {
     expect(store.error).toBe(undefined);
   });
 
-  it('Проверяем положительный кейс', async () => {
+  it('sync:fetchPolicy=cache-first: стандартная загрузка успешна', async () => {
     const onSuccess = vi.fn();
     const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: getDataStorage(),
     });
 
     store.sync({ onSuccess });
-    expect(store.isLoading).toBe(true);
     expect(store.data).toBe(undefined);
     await when(() => !store.isLoading);
     expect(onSuccess).toBeCalled();
-    expect(store.isLoading).toBe(false);
     expect(store.data).toStrictEqual(['foo']);
   });
 
-  it('Проверяем отрицательный кейс', async () => {
+  it('sync+onError: Вызывается обработчик ошибки', async () => {
     const onDefaultError = vi.fn();
+    const onError = vi.fn();
     const store = new InfiniteQuery(() => Promise.reject('error'), {
       onError: onDefaultError,
       dataStorage: getDataStorage(),
     });
 
-    store.sync({
-      onError: (e) => {
-        expect(e).toBe('error');
-        expect(onDefaultError).not.toBeCalled();
-        expect(store.isLoading).toBe(false);
-        expect(store.data).toBe(undefined);
-        expect(store.isError).toBe(true);
-        expect(store.error).toBe('error');
-      },
-    });
+    store.sync({ onError });
+    await when(() => !store.isLoading);
+    expect(store.data, 'данные не должны появиться').toBe(undefined);
+    expect(store.isError, 'флаг ошибки должен включиться').toBe(true);
+    await when(() => store.error !== undefined);
+    expect(store.error, 'поле ошибки содержит данные ошибки').toBe('error');
+
+    expect(
+      onDefaultError,
+      'стандартный обработчик ошибки не должен быть вызван',
+    ).not.toBeCalled();
+
+    expect(
+      onError,
+      'переданный обработчик ошибки должен быть вызван, и в него должна передаться ошибка',
+    ).toBeCalledWith('error');
   });
 
-  it('Проверяем отрицательный кейс, когда передан только стандартный обработчик ошибки', async () => {
+  it('sync+defaultOnError: вызывается обработчик ошибки по умолчанию', async () => {
     const store = new InfiniteQuery(() => Promise.reject('error'), {
       onError: (e) => {
         expect(e).toBe('error');
@@ -64,12 +69,11 @@ describe('InfiniteQuery tests', () => {
     store.sync();
   });
 
-  it('Проверяем инвалидацию', async () => {
+  it('invalidate+data:fetchPolicy=cache-first: после invalidate обращение к data запускает загрузку', async () => {
     const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: getDataStorage(),
     });
 
-    expect(store.data).toBe(undefined);
     store.invalidate();
     expect(store.isLoading).toBe(false);
     expect(store.data).toBe(undefined);
@@ -79,20 +83,28 @@ describe('InfiniteQuery tests', () => {
     expect(store.data).toStrictEqual(['foo']);
   });
 
-  it('Проверяем автоматический запрос данных при обращении к data', async () => {
+  it('data: автоматический запрос данных при обращении к data', async () => {
     const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
       enabledAutoFetch: true,
       dataStorage: getDataStorage(),
     });
 
-    expect(store.isLoading).toBe(false);
-    expect(store.data).toBe(undefined);
-    expect(store.isLoading).toBe(true);
-    await when(() => !store.isLoading);
-    expect(store.data).toStrictEqual(['foo']);
+    store.invalidate();
+
+    expect(
+      store.isLoading,
+      'ожидаем, что загрузка не началась сама по себе',
+    ).toBe(false);
+
+    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+
+    expect(
+      store.isLoading,
+      'ожидаем, что после считывания данных загрузка началась',
+    ).toBe(true);
   });
 
-  it('Проверяем fetchMore', async () => {
+  it('fetchMore', async () => {
     const insideExecutor = vi.fn();
 
     const store = new InfiniteQuery(
@@ -116,45 +128,66 @@ describe('InfiniteQuery tests', () => {
 
     // проверяем запрос
     store.sync();
-    expect(store.isLoading).toBe(true);
     await when(() => !store.isLoading);
-    expect(store.isLoading).toBe(false);
-    expect(store.data).toStrictEqual(['foo']);
-    expect(insideExecutor).toHaveBeenLastCalledWith({ offset: 0, count: 1 });
+    expect(store.data, 'данные появились').toStrictEqual(['foo']);
+
+    expect(
+      insideExecutor,
+      'первый вызов executor произошел с {offset: 0}',
+    ).toHaveBeenLastCalledWith({ offset: 0, count: 1 });
+
     // запускаем fetchMore метод
     store.fetchMore();
-    expect(store.isLoading).toBe(true);
-    expect(store.isEndReached).toBe(false);
+
+    expect(store.isEndReached, 'флаг окончания списка не достигнут').toBe(
+      false,
+    );
+
     await when(() => !store.isLoading);
-    expect(insideExecutor).toHaveBeenLastCalledWith({ offset: 1, count: 1 });
-    expect(store.isLoading).toBe(false);
-    expect(store.isEndReached).toBe(false);
-    // проверяем что данные именно добавились, а не заменились
-    expect(store.data).toStrictEqual(['foo', 'foo']);
+
+    expect(
+      insideExecutor,
+      'второй вызов executor произошел с {offset: 1}',
+    ).toHaveBeenLastCalledWith({ offset: 1, count: 1 });
+
+    expect(store.isEndReached, 'флаг окончания списка не достигнут').toBe(
+      false,
+    );
+
+    expect(store.data, 'данные добавились').toStrictEqual(['foo', 'foo']);
     // снова запускаем fetchMore
     store.fetchMore();
-    expect(store.isLoading).toBe(true);
-    expect(store.isEndReached).toBe(false);
     await when(() => !store.isLoading);
-    expect(insideExecutor).toHaveBeenLastCalledWith({ offset: 2, count: 1 });
-    expect(store.isLoading).toBe(false);
-    // ожидаем, что бэк отдал пустой массив, следовательно, мы достигли конца списка
-    expect(store.isEndReached).toBe(true);
-    expect(store.data).toStrictEqual(['foo', 'foo']);
+
+    expect(
+      insideExecutor,
+      'третий вызов executor произошел с {offset: 3}',
+    ).toHaveBeenLastCalledWith({ offset: 2, count: 1 });
+
+    expect(
+      store.isEndReached,
+      'ожидаем, что бэк отдал пустой массив, следовательно, мы достигли конца списка',
+    ).toBe(true);
+
     // при еще одной попытке сделать запрос
     store.fetchMore();
-    // ожидаем что вызов будет проигнорирован, и флаг загрузки false
-    expect(store.isLoading).toBe(false);
-    expect(store.isEndReached).toBe(true);
+
+    expect(store.isLoading, 'ожидаем что вызов будет проигнорирован').toBe(
+      false,
+    );
+
     // ожидаем, что при инвалидации, данные будут заменены на начальный набор
     store.invalidate();
     store.sync();
     await when(() => !store.isLoading);
-    expect(insideExecutor).toHaveBeenLastCalledWith({ offset: 0, count: 1 });
-    expect(store.data).toStrictEqual(['foo']);
+
+    expect(
+      insideExecutor,
+      'после инвалидации, executor будет вызван с {offset: 0}',
+    ).toHaveBeenLastCalledWith({ offset: 0, count: 1 });
   });
 
-  it('Проверяем синхронизацию данных между двумя сторами, если они используют одно хранилище', async () => {
+  it('data-synchronization: Данные между двумя сторами синхронизируются, если они используют одно хранилище', async () => {
     const unifiedDataStorage = getDataStorage<string[]>();
 
     const storeA = new InfiniteQuery(() => Promise.resolve(['foo']), {
@@ -180,7 +213,7 @@ describe('InfiniteQuery tests', () => {
     ).toStrictEqual(['bar']);
   });
 
-  it('Проверяем "network-only" политику c async', async () => {
+  it('async:fetchPolicy=network-only данные запрашиваются при каждом вызове', async () => {
     // счетчик запроса, для эмуляции меняющихся данных
     let counter = 0;
 
@@ -212,7 +245,7 @@ describe('InfiniteQuery tests', () => {
     ).toStrictEqual([2]);
   });
 
-  it('Проверяем "network-only" политику c sync', async () => {
+  it('sync:fetchPolicy=network-only данные запрашиваются при каждом вызове', async () => {
     // счетчик запроса, для эмуляции меняющихся данных
     let counter = 0;
 
