@@ -140,7 +140,7 @@ describe('Query', () => {
     expect(store.data).toStrictEqual('foo');
   });
 
-  it('invalidate:data:fetchPolicy=cache-first: Проверяем инвалидацию считыванием data', async () => {
+  it('invalidate:data:fetchPolicy=cache-first: После инвалидации считывание data приводит к перезапросу данных', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
@@ -191,7 +191,7 @@ describe('Query', () => {
     ).toBe(true);
   });
 
-  it('invalidate:async:fetchPolicy=cache-first: Проверяем инвалидацию запуском async', async () => {
+  it('invalidate:async:fetchPolicy=cache-first: После инвалидации вызов async приводит к перезапросу данных', async () => {
     const store = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
