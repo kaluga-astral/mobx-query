@@ -10,7 +10,7 @@ export type MutationExecutor<TResult, TParams> = (
   params: TParams,
 ) => Promise<TResult>;
 
-export type MutationQueryParams<TResult, TError> = {
+export type MutationParams<TResult, TError> = {
   /**
    * @description обработчик ошибки, вызываемый по умолчанию
    */
@@ -21,7 +21,7 @@ export type MutationQueryParams<TResult, TError> = {
  * @description простой стор для запросов, которые не требуют кэширования,
  * пример - POST запросы
  */
-export class MutationQuery<TResult, TError = void, TExecutorParams = void>
+export class Mutation<TResult, TError = void, TExecutorParams = void>
   implements QueryBaseActions<TResult, TError, TExecutorParams>
 {
   /**
@@ -42,7 +42,7 @@ export class MutationQuery<TResult, TError = void, TExecutorParams = void>
 
   constructor(
     executor: MutationExecutor<TResult, TExecutorParams>,
-    { onError }: MutationQueryParams<TResult, TError> = {},
+    { onError }: MutationParams<TResult, TError> = {},
   ) {
     this.executor = executor;
     this.defaultOnError = onError;

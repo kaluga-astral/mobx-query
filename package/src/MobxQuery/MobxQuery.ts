@@ -4,11 +4,7 @@ import {
   InfiniteQuery,
   InfiniteQueryParams,
 } from '../InfiniteQuery';
-import {
-  MutationExecutor,
-  MutationQuery,
-  MutationQueryParams,
-} from '../MutationQuery';
+import { Mutation, MutationExecutor, MutationParams } from '../Mutation';
 import { CacheKey, FetchPolicy } from '../types';
 import { DataStorageFactory } from '../DataStorage';
 
@@ -33,7 +29,7 @@ type MobxQueryParams = {
   enabledAutoFetch?: boolean;
 };
 
-type CreateCacheableQueryParams<TResult, TError> = Omit<
+type CreateQueryParams<TResult, TError> = Omit<
   QueryParams<TResult, TError>,
   'dataStorage'
 >;
@@ -163,7 +159,7 @@ export class MobxQuery {
   createQuery = <TResult, TError>(
     key: CacheKey[],
     executor: QueryExecutor<TResult>,
-    params?: CreateCacheableQueryParams<TResult, TError>,
+    params?: CreateQueryParams<TResult, TError>,
   ) => {
     const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy;
 
@@ -212,11 +208,11 @@ export class MobxQuery {
   /**
    * @description метод создания мутации, не кешируется
    */
-  createMutationQuery = <TResult, TError, TExecutorParams>(
+  createMutation = <TResult, TError, TExecutorParams>(
     executor: MutationExecutor<TResult, TExecutorParams>,
-    params?: MutationQueryParams<TResult, TError>,
+    params?: MutationParams<TResult, TError>,
   ) =>
-    new MutationQuery<TResult, TError, TExecutorParams>(executor, {
+    new Mutation<TResult, TError, TExecutorParams>(executor, {
       ...params,
       onError: params?.onError || this.defaultErrorHandler,
     });
