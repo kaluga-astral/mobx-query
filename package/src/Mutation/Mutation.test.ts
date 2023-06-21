@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
-import { MutationQuery } from './MutationQuery';
+import { Mutation } from './Mutation';
 
-describe('MutationQuery', () => {
+describe('Mutation', () => {
   it('Init state: флаги false, данные undefined', () => {
-    const store = new MutationQuery(() => Promise.resolve('foo'));
+    const store = new Mutation(() => Promise.resolve('foo'));
 
     expect(store.isError).toBe(false);
     expect(store.isLoading).toBe(false);
@@ -14,7 +14,7 @@ describe('MutationQuery', () => {
 
   it('sync: стандартная загрузка успешна', async () => {
     const onSyncSuccess = vi.fn();
-    const store = new MutationQuery(() => Promise.resolve('foo'));
+    const store = new Mutation(() => Promise.resolve('foo'));
 
     store.sync({ onSuccess: onSyncSuccess });
     expect(store.isLoading).toBe(true);
@@ -25,7 +25,7 @@ describe('MutationQuery', () => {
 
   it('async: стандартная загрузка успешна', async () => {
     const onAsyncSuccess = vi.fn();
-    const store = new MutationQuery(() => Promise.resolve('foo'));
+    const store = new Mutation(() => Promise.resolve('foo'));
 
     await store.async().then(onAsyncSuccess);
     expect(onAsyncSuccess).toBeCalledWith('foo');
@@ -34,7 +34,7 @@ describe('MutationQuery', () => {
 
   it('sync: При вызове передаются параметры', async () => {
     const callBack = vi.fn();
-    const store = new MutationQuery((params: string) => {
+    const store = new Mutation((params: string) => {
       callBack(params);
 
       return Promise.resolve('foo');
@@ -47,7 +47,7 @@ describe('MutationQuery', () => {
 
   it('async: При вызове передаются параметры', async () => {
     const callBack = vi.fn();
-    const store = new MutationQuery((params: string) => {
+    const store = new Mutation((params: string) => {
       callBack(params);
 
       return Promise.resolve('foo');
@@ -58,7 +58,7 @@ describe('MutationQuery', () => {
   });
 
   it('sync: при провальном запросе вызывается onError', async () => {
-    const store = new MutationQuery(() => Promise.reject('foo'));
+    const store = new Mutation(() => Promise.reject('foo'));
 
     store.sync({
       onError: (e) => {
@@ -70,7 +70,7 @@ describe('MutationQuery', () => {
   });
 
   it('sync: при провальном запросе вызывается стандартный onError', async () => {
-    const store = new MutationQuery(() => Promise.reject('foo'), {
+    const store = new Mutation(() => Promise.reject('foo'), {
       onError: (e) => {
         expect(store.isLoading).toBe(false);
         expect(store.isError).toBe(true);
@@ -84,7 +84,7 @@ describe('MutationQuery', () => {
   it('async: При провальном запросе вызывается не вызывается стандартный onError', async () => {
     const onDefaultError = vi.fn();
     const onAsyncError = vi.fn();
-    const store = new MutationQuery(() => Promise.reject('foo'), {
+    const store = new Mutation(() => Promise.reject('foo'), {
       onError: onDefaultError,
     });
 
