@@ -1,7 +1,7 @@
-export * from './Mutation';
+export { Mutation } from './Mutation';
 
-export * from './Query';
+export { Query } from './Query';
 
-export * from './InfiniteQuery';
+export { InfiniteQuery } from './InfiniteQuery';
 
-export * from './MobxQuery';
+export { MobxQuery } from './MobxQuery';
