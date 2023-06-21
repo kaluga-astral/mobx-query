@@ -32,7 +32,7 @@ describe('InfiniteQuery', () => {
     expect(store.data).toStrictEqual(['foo']);
   });
 
-  it('sync+onError: Вызывается обработчик ошибки', async () => {
+  it('sync:onError: Вызывается обработчик ошибки', async () => {
     const onDefaultError = vi.fn();
     const onError = vi.fn();
     const store = new InfiniteQuery(() => Promise.reject('error'), {
@@ -58,7 +58,7 @@ describe('InfiniteQuery', () => {
     ).toBeCalledWith('error');
   });
 
-  it('sync+defaultOnError: вызывается обработчик ошибки по умолчанию', async () => {
+  it('sync:defaultOnError: вызывается обработчик ошибки по умолчанию', async () => {
     const store = new InfiniteQuery(() => Promise.reject('error'), {
       onError: (e) => {
         expect(e).toBe('error');
@@ -69,7 +69,7 @@ describe('InfiniteQuery', () => {
     store.sync();
   });
 
-  it('invalidate+data:fetchPolicy=cache-first: после invalidate обращение к data запускает загрузку', async () => {
+  it('invalidate:data:fetchPolicy=cache-first: после invalidate обращение к data запускает загрузку', async () => {
     const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: getDataStorage(),
     });
@@ -104,7 +104,7 @@ describe('InfiniteQuery', () => {
     ).toBe(true);
   });
 
-  it('fetchMore', async () => {
+  it('fetchMore: данные конкатенируются, счетчики увеличиваются, флаг достижения списка актуален', async () => {
     const insideExecutor = vi.fn();
 
     const store = new InfiniteQuery(
@@ -185,6 +185,32 @@ describe('InfiniteQuery', () => {
       insideExecutor,
       'после инвалидации, executor будет вызван с {offset: 0}',
     ).toHaveBeenLastCalledWith({ offset: 0, count: 1 });
+  });
+
+  it('isEndReached сбрасывается при каждом ручном запросе', async () => {
+    const store = new InfiniteQuery(
+      // предположим что у бэка есть только 1 элемент, хотя мы запрашиваем 2
+      () => Promise.resolve(['foo']),
+      {
+        incrementCount: 2,
+        dataStorage: getDataStorage(),
+      },
+    );
+
+    await store.async();
+
+    expect(
+      store.isEndReached,
+      'после запроса флаг окончания списка включен',
+    ).toBe(true);
+
+    store.invalidate();
+    store.sync();
+
+    expect(
+      store.isEndReached,
+      'не дожидаясь окончания запроса, флаг окончания списка выключен',
+    ).toBe(false);
   });
 
   it('data-synchronization: Данные между двумя сторами синхронизируются, если они используют одно хранилище', async () => {

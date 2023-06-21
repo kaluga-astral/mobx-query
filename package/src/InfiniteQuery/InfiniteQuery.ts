@@ -207,6 +207,7 @@ export class InfiniteQuery<TResult, TError = void>
     onError,
   } = {}) => {
     this.offset = 0;
+    this.isEndReached = false;
 
     this.auxiliary
       .getUnifiedPromise(this.infiniteExecutor)
@@ -234,6 +235,7 @@ export class InfiniteQuery<TResult, TError = void>
     }
 
     this.offset = 0;
+    this.isEndReached = false;
 
     return this.auxiliary
       .getUnifiedPromise(this.infiniteExecutor)
