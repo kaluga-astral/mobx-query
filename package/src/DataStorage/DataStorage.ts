@@ -9,7 +9,7 @@ export class DataStorage<TData> {
   /**
    * @description поле, отвечающее за непосредственное хранение данных
    */
-  private internalData?: TData;
+  private internalData?: TData = undefined;
 
   constructor() {
     makeAutoObservable(this);
