@@ -164,6 +164,8 @@ export class Query<TResult, TError = void>
       this.enabledAutoFetch && !this.isSuccess && !this.isLoading;
 
     if (this.isInvalid || shouldSync) {
+      // т.к. при вызове апдейта, изменяются флаги, на которые подписан data,
+      // нужно вызывать этот экшн асинхронно
       when(() => true, this.proceedSync);
     }
 
