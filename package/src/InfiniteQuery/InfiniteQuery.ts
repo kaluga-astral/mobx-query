@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, when } from 'mobx';
 
 import { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
@@ -262,7 +262,7 @@ export class InfiniteQuery<TResult, TError = void>
       this.enabledAutoFetch && !this.isSuccess && !this.isLoading;
 
     if (this.isInvalid || shouldSync) {
-      this.proceedSync();
+      when(() => true, this.proceedSync);
     }
 
     // возвращаем имеющиеся данные
