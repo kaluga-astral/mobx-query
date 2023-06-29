@@ -70,17 +70,43 @@ describe('InfiniteQuery', () => {
   });
 
   it('invalidate:data:fetchPolicy=cache-first: после invalidate обращение к data запускает загрузку', async () => {
-    const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
-      dataStorage: getDataStorage(),
-    });
+    const store = new InfiniteQuery(
+      // executor эмулирует постоянно меняющиеся данные
+      () => Promise.resolve([Math.random()]),
+      {
+        dataStorage: getDataStorage(),
+      },
+    );
 
     store.invalidate();
-    expect(store.isLoading).toBe(false);
-    expect(store.data).toBe(undefined);
-    expect(store.isLoading).toBe(true);
+
+    expect(
+      store.data,
+      'эмулируем обращение к data, чтобы тригернуть загрузку данных',
+    ).toBe(undefined);
+
     await when(() => !store.isLoading);
-    expect(store.isLoading).toBe(false);
-    expect(store.data).toStrictEqual(['foo']);
+
+    const firstValue = store.data?.[0];
+
+    expect(
+      typeof firstValue,
+      'ожидаем, что действительно пришло какое то число',
+    ).toBe('number');
+
+    store.invalidate();
+
+    expect(
+      store.data,
+      'эмулируем обращение к data, чтобы тригернуть загрузку данных',
+    ).toStrictEqual([firstValue]);
+
+    await when(() => !store.isLoading);
+
+    expect(
+      store.data?.[0] !== firstValue,
+      'ожидаем, что данные изменились',
+    ).toBe(true);
   });
 
   it('data: автоматический запрос данных при обращении к data', async () => {
