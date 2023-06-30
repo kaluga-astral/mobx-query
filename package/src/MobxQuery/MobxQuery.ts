@@ -9,6 +9,11 @@ import { CacheKey, FetchPolicy } from '../types';
 import { DataStorageFactory } from '../DataStorage';
 
 /**
+ * @description время, спустя которое, запись о query c network-only будет удалена
+ */
+const DEFAULT_TIME_TO_CLEAN = 100;
+
+/**
  * @description стандартный обработчик ошибки запроса,
  * будет вызван, если при вызове sync не был передан отдельный onError параметр
  */
@@ -131,11 +136,9 @@ export class MobxQuery {
     createStore: () => CachedQueryStore<TResult, TError>,
     fetchPolicy: FetchPolicy,
   ) => {
-    if (fetchPolicy === 'network-only') {
-      return createStore();
-    }
-
-    const keyHash: KeyHash = this.serialize(key);
+    // создаем хэш ключа с добавляем к ключу значения fetchPolicy,
+    // чтобы query c одинаковым ключом, но разным fetchPolicy не пересекались бы
+    const keyHash: KeyHash = this.serialize([...key, fetchPolicy]);
 
     if (this.cacheableStores.has(keyHash)) {
       return this.cacheableStores.get(keyHash);
@@ -149,6 +152,13 @@ export class MobxQuery {
     );
 
     this.keys[keyHash] = key;
+
+    if (fetchPolicy === 'network-only') {
+      setTimeout(() => {
+        this.cacheableStores.delete(keyHash);
+        delete this.keys[keyHash];
+      }, DEFAULT_TIME_TO_CLEAN);
+    }
 
     return store;
   };

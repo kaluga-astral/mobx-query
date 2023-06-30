@@ -7,6 +7,8 @@ const checkLoading = (items: { isLoading: boolean }[]) =>
   items.every((item) => item.isLoading === false);
 
 describe('MobxQuery', () => {
+  vi.useFakeTimers();
+
   it('Сторы с разными ключами отличаются, с одинаковыми совпадают', async () => {
     const mobxQuery = new MobxQuery();
     const queryA = mobxQuery.createInfiniteQuery(
@@ -61,8 +63,23 @@ describe('MobxQuery', () => {
     ).toBe(false);
 
     expect(
-      queryC !== queryD,
-      'два "network-only" квери с одним ключом, это два разных инстанса',
+      queryC === queryD,
+      'два "network-only" квери с одним ключом, созданные единомоментно, это один инстанс',
+    ).toBe(true);
+
+    // эмулируем завершение таймера на удаление квери
+    await vi.advanceTimersToNextTimerAsync();
+
+    // создаем новый "network-only" квери с точно такими параметрам как и предыдущий
+    const queryE = mobxQuery.createInfiniteQuery(
+      ['foo'],
+      () => Promise.resolve([]),
+      { fetchPolicy: 'network-only' },
+    );
+
+    expect(
+      queryD !== queryE,
+      'два "network-only" квери с одним ключом, созданные в разное время, это разные инстансы',
     ).toBe(true);
   });
 
