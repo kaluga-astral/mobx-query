@@ -153,6 +153,7 @@ export class MobxQuery {
 
     this.keys[keyHash] = key;
 
+    // для network-only квери добавляем таймер для очистки из памяти
     if (fetchPolicy === 'network-only') {
       setTimeout(() => {
         this.cacheableStores.delete(keyHash);
