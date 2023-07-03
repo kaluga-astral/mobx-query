@@ -7,6 +7,8 @@ const checkLoading = (items: { isLoading: boolean }[]) =>
   items.every((item) => item.isLoading === false);
 
 describe('MobxQuery', () => {
+  vi.useFakeTimers();
+
   it('Сторы с разными ключами отличаются, с одинаковыми совпадают', async () => {
     const mobxQuery = new MobxQuery();
     const queryA = mobxQuery.createInfiniteQuery(
@@ -44,12 +46,6 @@ describe('MobxQuery', () => {
       { fetchPolicy: 'network-only' },
     );
 
-    const queryD = mobxQuery.createInfiniteQuery(
-      ['foo'],
-      () => Promise.resolve([]),
-      { fetchPolicy: 'network-only' },
-    );
-
     expect(
       queryA === queryB,
       'проверяем что инстантс квери без политики, это тот же инстанс с "cache-first"',
@@ -59,11 +55,43 @@ describe('MobxQuery', () => {
       queryB === queryC,
       'при разных политиках, инстансы сторов должны быть разные',
     ).toBe(false);
+  });
 
-    expect(
-      queryC !== queryD,
-      'два "network-only" квери с одним ключом, это два разных инстанса',
-    ).toBe(true);
+  it('network-only:одинаковые ключи: сторы созданные единомоментно одинаковы', () => {
+    const mobxQuery = new MobxQuery();
+    const queryA = mobxQuery.createInfiniteQuery(
+      ['foo'],
+      () => Promise.resolve([]),
+      { fetchPolicy: 'network-only' },
+    );
+
+    const queryB = mobxQuery.createInfiniteQuery(
+      ['foo'],
+      () => Promise.resolve([]),
+      { fetchPolicy: 'network-only' },
+    );
+
+    expect(queryA === queryB).toBe(true);
+  });
+
+  it('network-only:одинаковые ключи: сторы созданные c паузой разные', async () => {
+    const mobxQuery = new MobxQuery();
+    const queryA = mobxQuery.createInfiniteQuery(
+      ['foo'],
+      () => Promise.resolve([]),
+      { fetchPolicy: 'network-only' },
+    );
+
+    // эмулируем завершение таймера на удаление квери
+    await vi.advanceTimersToNextTimerAsync();
+
+    const queryB = mobxQuery.createInfiniteQuery(
+      ['foo'],
+      () => Promise.resolve([]),
+      { fetchPolicy: 'network-only' },
+    );
+
+    expect(queryA === queryB).toBe(false);
   });
 
   it('Инвалидация с простыми ключами', async () => {
