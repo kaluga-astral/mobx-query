@@ -23,8 +23,8 @@ yarn add @astral/mobx-query
 ---
 
 # Basic meaning
-- executor - исполнитель запроса. Хэндлер, который будет совершать запрос данных. Второй аргумент при создании query
-- enabledAutoFetch - настройка, отвечающая за то, что будет происходить автоматический запрос данных при обращении к полю `data`, не актуально для `MutationQuery`.
+- executor - исполнитель запроса, который будет совершать запрос. Второй аргумент при создании query
+- enabledAutoFetch - включает автоматический запрос данных при обращении к полю `data`.
 - fetchPolicy - политика, говорящая о том, как следует работать с новыми запросами
     - 'cache-first' - политика применяемая по умолчанию, при отсутствии данных в памяти, будет исполнен executor, его ответ запишется в кеш, и при последующих обращениях данные будут взяты из кеша
     - 'network-only' - каждый запрос будет приводить к вызову executor, его ответ будет записан в кеш(для использования в cache-first)
@@ -44,7 +44,7 @@ const mobxQuery = new MobxQuery({
 });
 ```
 
-# Несколько вариантов использования
+# Несколько вариантов использования query
 ## 1. Ручной синхронный.
 
 Можно вызывать встроенный метод `sync`, передавая в него колбэк опциональные параметры `onSucess` и `onError`. В onSuccess будут переданы полученные данные от успешного запроса, а в `onError`, соответственно, будет переданы данные ошибки в случае провального запроса.
@@ -66,6 +66,8 @@ query.sync({
 });
 ```
 
+[Пример в sandbox](https://codesandbox.io/s/adoring-wing-z8s9ng)
+
 ## 2. Ручной асинхронный.
 
 Можно вызвать встроенный метод async. Возвращает промис, соответственно в then попадут данные успешного запроса.
@@ -86,25 +88,9 @@ query
         console.log(e); // место для вашей ошибки
     });
 ```
+[Пример в sandbox](https://codesandbox.io/s/mobx-query-simple-async-k75tfg)
 
-## 3. Синхронный полуавтомат.
-
-При вызове метода `sync`, можно не передавать никаких параметров, достаточно просто отдать реактивные данные из query в ваш вью элемент, обернутый `observer` от `mobx`.
-В таком случае, данные отобразятся просто в разметке, сразу как появятся.
-```tsx
-import { observer } from 'mobx-react-lite';
-
-const query = mobxQuery.createQuery(
-    ['some cache key'],
-    () => Promise.resolve('foo'),
-);
-
-query.sync();
-
-const MyComponent = observer(() => <div>{query.data}</div>) // <div>foo</div>
-```
-
-## 4. Автоматический.
+## 3. Автоматический.
 
 При создании query, предусмотрен вариант автоматического запроса при обращении к полю `data` из `query`. Требуется активация флага `enabledAutoFetch` при создании query, либо установка стандартного значения, при создании MobxQuery инстанса.
 Т.е. благодаря реактивности предоставляемой `mobx`, пока не произойдет считывания поля `data` или же не будут вызваны `sync/async` методы, запрос данных так же не произойдет.
@@ -120,11 +106,12 @@ const query = mobxQuery.createQuery(
 
 const MyComponent = observer(() => <div>{query.data}</div>) // <div>foo</div>
 ```
+[Пример в sandbox](https://codesandbox.io/s/happy-cherry-ytqgry)
 
 # Инвалидация данных
 Существует необходимость инвалидировать данные, типичным примером являются [CRUD операции](https://ru.wikipedia.org/wiki/CRUD).
 В контексте нашей библиотеки, инвалидация подразумевает под собой отметку для query, означающую, что данные устарели, и их необходимо обновить.
-Для корректной работы инвалидации, при создании query требуется использование `ключа`, c помощью которого и происходит вся магия.
+Для корректной работы инвалидации, при создании query требуется использование `ключа`.
 Ключ для создания может быть как примитивом, так и объектом. Главное, чтобы они были подходящими для JSON сериализации.
 
 Инстанс MobxQuery содержит специальный метод `invalidate`, принимающий в качестве аргумента `массив ключей`.
@@ -138,6 +125,8 @@ const query = mobxQuery.createQuery(
 
 mobxQuery.invalidate(['some cache key'])
 ```
+
+[Пример в sandbox](https://codesandbox.io/s/mobx-query-invalidate-query-hhcngr)
 
 ## Особенности инвалидации
 - Как при создании query, так и при инвалидации, нужно использовать массив ключей. Предполагается, что query может быть инвалидирован по нескольким ключам
@@ -166,12 +155,14 @@ mobxQuery.invalidate(['key one']); // ключ не совпадает, query Н
 
 # InfiniteQuery
 Существует необходимость постепенного запроса массивов данных, в постраничном режиме. Типичный пример, инфинити скролл, когда новая пачка данных запрашивается, в момент когда пользователь докрутил список до конца.
-Для удобства, мы создали специальный `query`, который содержит дополнительный метод `fetchMore` и при вызове оного, происходит запрос с увеличенными счетчиками. Данные ответа на этот запрос, будут сконкатенированы с уже имеющимся. В случае, если количество данных меньше, чем длина страницы, будет считаться что мы дошли до конца списка, флаг `isEndReached` будет включен, и последующие вызовы `fetchMore` будут проигнорированы, до тех пор, пока не будет запущена инвалидация.
+Для удобства, мы создали специальный `query`, который содержит дополнительный метод `fetchMore` и при вызове оного, происходит запрос с увеличенными счетчиками. Данные ответа на этот запрос, будут сконкатенированы с уже имеющимся. В случае, если количество данных меньше, чем длина страницы, будет считаться что мы дошли до конца списка.
 В `executor` будет передан объект с `offset` - количество элементов отступа от начала списка, и `count` - количество элементов на одну страницу.
 
 Значение `count` и увеличение `offset` регулируется опциональным параметром `incrementCount` при создании `query`. По умолчанию равен `30`.
 
 ```ts
+import { when } from 'mobx';
+
 const query = mobxQuery.createInfiniteQuery(
     ['some cache key'],
     ({ offset, count }) => {
@@ -188,7 +179,7 @@ await query.async();
 console.log(query.data); // ['foo'] 
 
 query.fetchMore();
-// ждем фоновой загрузки
+await when(() => !query.isLoading); // ждем фоновой загрузки
 
 console.log(query.data); // ['foo', 'foo'] 
 ``` 
@@ -206,20 +197,22 @@ await query.async();
 console.log(query.isEndReached); // true
 ``` 
 
+[Пример в sandbox](https://codesandbox.io/s/mobx-query-infinityquery-sdcc6g)
+
 # Mutation
-Существует необходимость делать запросы к api, которые не требуют кеширования, пример - `POST` запросы.
-Для этого предназначен дополнительный вид query, который никак не кешируется.
+Для изменения данных необходимо использовать mutation. Ответы Mutation не кэшируются.
 
 ```ts
-const mutation = mobxQuery.createMutationQuery(
+const mutation = mobxQuery.createMutation(
     (params) => {
         console.log(params); // при необходмости, можем использовать опциональные параметры
         return Promise.resolve('foo');
     },
 );
 ```
+[Пример в sandbox](https://codesandbox.io/s/mobx-query-mutation-p2pnct)
 
-async вариация
+### async вариация
 ```ts
 mutation
     .async('bar') // тут, по нашему примеру, увидим консоль 'bar'
@@ -228,7 +221,7 @@ mutation
     }); 
 ```
 
-sync вариация
+### sync вариация
 ```ts
 mutation.sync({
     params: 'bar',    
@@ -238,3 +231,45 @@ mutation.sync({
 }); // тут, по нашему примеру, увидим консоль 'bar'
 ```
 
+# fetchPolicy
+
+```ts
+const cacheFirstQuery = mobxQuery.createQuery(
+    ['cache-first key'],
+    () => {
+        console.log('cache-first request');
+        return Promise.resolve('foo');
+    },
+    {
+        fetchPolicy: 'cache-first',
+    }
+);
+
+const networkOnlyQuery = mobxQuery.createQuery(
+    ['network-only key'],
+    () => {
+        console.log('network-only request');
+        return Promise.resolve('bar');
+    },
+    {
+        fetchPolicy: 'network-only',
+    }
+);
+
+await cacheFirstQuery.async(); // увидим консоль 'cache-first request'
+await networkOnlyQuery.async(); // увидим консоль 'network-only request'
+
+await cacheFirstQuery.async(); // вызова executor не произойдет, и консоль не выведется
+await networkOnlyQuery.async(); // вновь увидим консоль 'network-only request'
+
+const duplicateCacheFirstQuery = mobxQuery.createQuery(
+        ['cache-first key'], // использован тот же самый ключ, что и для cacheFirstQuery
+        () => {
+          console.log('duplicate cache-first request');
+          return Promise.resolve('foo');
+        }
+);
+
+await duplicateCacheFirstQuery.async(); // вызова executor не произойдет, и консоль не выведется
+```
+[Пример в sandbox](https://codesandbox.io/s/mobx-query-fetchpolicy-wvh8jl)
