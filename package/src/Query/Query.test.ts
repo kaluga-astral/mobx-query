@@ -141,9 +141,13 @@ describe('Query', () => {
   });
 
   it('invalidate:data:fetchPolicy=cache-first: После инвалидации считывание data приводит к перезапросу данных', async () => {
-    const store = new Query(() => Promise.resolve('foo'), {
-      dataStorage: getDataStorage(),
-    });
+    const store = new Query(
+      // executor эмулирует постоянно меняющиеся данные
+      () => Promise.resolve(Math.random()),
+      {
+        dataStorage: getDataStorage(),
+      },
+    );
 
     store.invalidate();
 
@@ -158,6 +162,19 @@ describe('Query', () => {
       store.isLoading,
       'ожидаем, что после считывания данных загрузка началась',
     ).toBe(true);
+
+    await when(() => !store.isLoading);
+
+    const firstValue = store.data;
+
+    expect(typeof firstValue).toBe('number');
+    store.invalidate();
+    expect(store.data, 'эмулируем считывание данных').toBe(firstValue);
+    await when(() => !store.isLoading);
+
+    expect(store.data !== firstValue, 'ожидаем, что число изменилось').toBe(
+      true,
+    );
   });
 
   it('invalidate:sync:fetchPolicy=cache-first: после инвалидации запуск sync приводит к перезапросу', async () => {

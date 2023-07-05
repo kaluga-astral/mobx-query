@@ -1,4 +1,4 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, when } from 'mobx';
 
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
@@ -164,7 +164,9 @@ export class Query<TResult, TError = void>
       this.enabledAutoFetch && !this.isSuccess && !this.isLoading;
 
     if (this.isInvalid || shouldSync) {
-      this.proceedSync();
+      // т.к. при вызове апдейта, изменяются флаги, на которые подписан data,
+      // нужно вызывать этот экшн асинхронно
+      when(() => true, this.proceedSync);
     }
 
     // возвращаем имеющиеся данные
