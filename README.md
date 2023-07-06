@@ -10,6 +10,27 @@
 
 ---
 
+## Table of contents
+- [Installation](#installation)
+- [Basic meaning](#basic-meaning)
+- [Варианты использования query](#варианты-использования-query)
+  - [Ручной синхронный](#1-ручной-синхронный)
+  - [Ручной асинхронный](#2-ручной-асинхронный)
+  - [Автоматический](#3-автоматический)
+- [Инвалидация данных](#инвалидация-данных)
+  - [Особенности инвалидации](#особенности-инвалидации)
+- [InfiniteQuery](#infinitequery)
+  - [isEndReached](#isendreached)
+- [Mutation](#mutation)
+  - [Sync вариация](#sync-вариация)
+  - [Async вариация](#async-вариация)
+- [Fetch policy](#fetchpolicy)
+- [Вспомогательные флаги и поля](#вспомогательные-флаги-и-поля)
+  - [isLoading](#isloading)
+  - [isSuccess](#issuccess)
+  - [isError](#iserror)
+  - [error](#error)
+
 # Installation
 
 ```shell
@@ -44,7 +65,7 @@ const mobxQuery = new MobxQuery({
 });
 ```
 
-# Несколько вариантов использования query
+# Варианты использования query
 ## 1. Ручной синхронный.
 
 Можно вызывать встроенный метод `sync`, передавая в него колбэк опциональные параметры `onSucess` и `onError`. В onSuccess будут переданы полученные данные от успешного запроса, а в `onError`, соответственно, будет переданы данные ошибки в случае провального запроса.
@@ -66,7 +87,7 @@ query.sync({
 });
 ```
 
-[Пример в sandbox](https://codesandbox.io/s/adoring-wing-z8s9ng)
+**[Пример в sandbox](https://codesandbox.io/s/adoring-wing-z8s9ng)**
 
 ## 2. Ручной асинхронный.
 
@@ -88,7 +109,7 @@ query
         console.log(e); // место для вашей ошибки
     });
 ```
-[Пример в sandbox](https://codesandbox.io/s/mobx-query-simple-async-k75tfg)
+**[Пример в sandbox](https://codesandbox.io/s/mobx-query-simple-async-k75tfg)**
 
 ## 3. Автоматический.
 
@@ -106,7 +127,7 @@ const query = mobxQuery.createQuery(
 
 const MyComponent = observer(() => <div>{query.data}</div>) // <div>foo</div>
 ```
-[Пример в sandbox](https://codesandbox.io/s/happy-cherry-ytqgry)
+**[Пример в sandbox](https://codesandbox.io/s/happy-cherry-ytqgry)**
 
 # Инвалидация данных
 Существует необходимость инвалидировать данные, типичным примером являются [CRUD операции](https://ru.wikipedia.org/wiki/CRUD).
@@ -126,7 +147,7 @@ const query = mobxQuery.createQuery(
 mobxQuery.invalidate(['some cache key'])
 ```
 
-[Пример в sandbox](https://codesandbox.io/s/mobx-query-invalidate-query-hhcngr)
+**[Пример в sandbox](https://codesandbox.io/s/mobx-query-invalidate-query-hhcngr)**
 
 ## Особенности инвалидации
 - Как при создании query, так и при инвалидации, нужно использовать массив ключей. Предполагается, что query может быть инвалидирован по нескольким ключам
@@ -197,7 +218,7 @@ await query.async();
 console.log(query.isEndReached); // true
 ``` 
 
-[Пример в sandbox](https://codesandbox.io/s/mobx-query-infinityquery-sdcc6g)
+**[Пример в sandbox](https://codesandbox.io/s/mobx-query-infinityquery-sdcc6g)**
 
 # Mutation
 Для изменения данных необходимо использовать mutation. Ответы Mutation не кэшируются.
@@ -210,9 +231,9 @@ const mutation = mobxQuery.createMutation(
     },
 );
 ```
-[Пример в sandbox](https://codesandbox.io/s/mobx-query-mutation-p2pnct)
+**[Пример в sandbox](https://codesandbox.io/s/mobx-query-mutation-p2pnct)**
 
-### async вариация
+## async вариация
 ```ts
 mutation
     .async('bar') // тут, по нашему примеру, увидим консоль 'bar'
@@ -221,7 +242,7 @@ mutation
     }); 
 ```
 
-### sync вариация
+## sync вариация
 ```ts
 mutation.sync({
     params: 'bar',    
@@ -272,4 +293,32 @@ const duplicateCacheFirstQuery = mobxQuery.createQuery(
 
 await duplicateCacheFirstQuery.async(); // вызова executor не произойдет, и консоль не выведется
 ```
-[Пример в sandbox](https://codesandbox.io/s/mobx-query-fetchpolicy-wvh8jl)
+**[Пример в sandbox](https://codesandbox.io/s/mobx-query-fetchpolicy-wvh8jl)**
+
+# Вспомогательные флаги и поля
+`Query`, `InfiniteQuery` и `Mutation` имеют одинаковый набор вспомогательных флагов и полей, работающих по единому принципу.
+
+## isLoading
+Boolean флаг, указывающий на процесс выполнения запроса
+## isSuccess
+Boolean флаг, указывающий на успешное выполнение запроса
+## isError
+Boolean флаг, указывающий на провалившийся запрос
+## error
+Поле, содержащее информацию о последней ошибке
+
+```ts
+const query = mobxQuery.createQuery(
+    ['some cache key'],
+    () => Promise.reject('foo'),
+);
+
+await query
+    .async()
+    .catch((e) => {
+        console.log(e); // 'foo'
+    });
+
+console.log(query.isError); // 'true'
+console.log(query.error); // 'foo'
+```
