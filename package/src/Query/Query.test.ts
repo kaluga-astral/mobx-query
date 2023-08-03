@@ -238,6 +238,28 @@ describe('Query', () => {
     ).toBe(true);
   });
 
+  it('enabledAutoFetch:true:request:fail не происходит повторных запросов', async () => {
+    const insideExecutor = vi.fn();
+    const store = new Query(
+      () => {
+        insideExecutor();
+
+        return Promise.reject('foo');
+      },
+      {
+        enabledAutoFetch: true,
+        dataStorage: getDataStorage(),
+      },
+    );
+
+    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    await when(() => !store.isLoading);
+    expect(insideExecutor, 'executor вызван в первый раз').toBeCalled();
+    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    await when(() => !store.isLoading);
+    expect(insideExecutor, 'executor больше не вызывается').toBeCalledTimes(1);
+  });
+
   it('data-synchronization: Данные между двумя сторами синхронизируются, если они используют одно хранилище', async () => {
     const unifiedDataStorage = getDataStorage();
 

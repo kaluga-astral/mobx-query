@@ -130,6 +130,28 @@ describe('InfiniteQuery', () => {
     ).toBe(true);
   });
 
+  it('enabledAutoFetch:true:request:fail не происходит повторных запросов', async () => {
+    const insideExecutor = vi.fn();
+    const store = new InfiniteQuery(
+      () => {
+        insideExecutor();
+
+        return Promise.reject('foo');
+      },
+      {
+        enabledAutoFetch: true,
+        dataStorage: getDataStorage(),
+      },
+    );
+
+    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    await when(() => !store.isLoading);
+    expect(insideExecutor, 'executor вызван в первый раз').toBeCalled();
+    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    await when(() => !store.isLoading);
+    expect(insideExecutor, 'executor больше не вызывается').toBeCalledTimes(1);
+  });
+
   it('fetchMore: данные конкатенируются, счетчики увеличиваются, флаг достижения списка актуален', async () => {
     const insideExecutor = vi.fn();
 
