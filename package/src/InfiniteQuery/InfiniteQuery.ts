@@ -259,7 +259,10 @@ export class InfiniteQuery<TResult, TError = void>
    */
   public get data() {
     const shouldSync =
-      this.enabledAutoFetch && !this.isSuccess && !this.isLoading;
+      this.enabledAutoFetch &&
+      !this.isSuccess &&
+      !this.isLoading &&
+      !this.isError;
 
     if (this.isInvalid || shouldSync) {
       // т.к. при вызове апдейта, изменяются флаги, на которые подписан data,
