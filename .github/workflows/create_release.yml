@@ -70,7 +70,7 @@ jobs:
 
             ⚡️ <a href="https://github.com/kaluga-astral/${{ github.event.repository.name }}/releases/tag/v${{ env.NEXT_VERSION }}">Changelog</a>
 
-            ⚡️ Проявив инициативу и взяв доступную задачу с доски <a href="https://astraltrack.atlassian.net/jira/software/c/projects/UIKIT/boards/276">Frontend.Shared</a>, вы развиваете frontend в компании.
+            ⚡️ Проявив инициативу и взяв доступную задачу с доски <a href="https://track.astral.ru/soft/secure/RapidBoard.jspa?rapidView=142">Frontend.Shared</a>, вы развиваете frontend в компании.
 
       # Отказ релиза, если workflow упал. При откате: удаляется git tag + удаляется github release. Сделано для того, чтобы можно было перезапускать упавшие релизы
       - uses: dev-drprasad/delete-tag-and-release@v0.2.1
