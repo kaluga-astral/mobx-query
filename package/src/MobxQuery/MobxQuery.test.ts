@@ -275,7 +275,7 @@ describe('MobxQuery', () => {
     expect(query.isLoading, 'ожидаем что загрузка началась').toBe(true);
   });
 
-  it('invalidateQueries вызывает инвалидация сразу всех квери', async () => {
+  it('invalidateQueries вызывает инвалидацию сразу всех квери', async () => {
     const mobxQuery = new MobxQuery();
     const onLoad = vi.fn();
     const queryFoo = mobxQuery.createQuery([['foo']], () => {
