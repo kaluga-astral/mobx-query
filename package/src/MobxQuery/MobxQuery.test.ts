@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
 import { MobxQuery } from './MobxQuery';
@@ -273,5 +273,35 @@ describe('MobxQuery', () => {
     );
 
     expect(query.isLoading, 'ожидаем что загрузка началась').toBe(true);
+  });
+
+  it('invalidateQueries вызывает инвалидация сразу всех квери', async () => {
+    const mobxQuery = new MobxQuery();
+    const onLoad = vi.fn();
+    const queryFoo = mobxQuery.createQuery([['foo']], () => {
+      onLoad();
+
+      return Promise.resolve('data');
+    });
+
+    const queryBar = mobxQuery.createQuery([['bar']], () => {
+      onLoad();
+
+      return Promise.resolve('data');
+    });
+
+    // добавляем данные
+    await queryFoo.async();
+    await queryBar.async();
+    //запускаем массовую инвалидацию
+    mobxQuery.invalidateQueries();
+    // снова запускаем загрузку в обоих квери
+    await queryFoo.async();
+    await queryBar.async();
+
+    expect(
+      onLoad,
+      'ожидается, что после вызова массовой валидации, сайд эффект загрузки вызывался в executor каждого квери',
+    ).toBeCalledTimes(4);
   });
 });

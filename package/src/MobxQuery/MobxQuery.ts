@@ -128,6 +128,17 @@ export class MobxQuery {
   };
 
   /**
+   * @description метод для инвалидации сразу всех квери разом
+   */
+  public invalidateQueries = () => {
+    [...this.cacheableStores.entries()].forEach((entrie) => {
+      const store = entrie[1];
+
+      store.invalidate();
+    });
+  };
+
+  /**
    * @description метод, который занимается проверкой наличия стора по ключу,
    * и если нет, создает новый, добавляет его к себе в память, и возвращает его пользователю
    */
