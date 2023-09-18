@@ -128,7 +128,7 @@ export class MobxQuery {
   };
 
   /**
-   * @description метод для инвалидации сразу всех квери разом
+   * @description метод инвалидации всех query
    */
   public invalidateQueries = () => {
     [...this.cacheableStores.entries()].forEach((entrie) => {
