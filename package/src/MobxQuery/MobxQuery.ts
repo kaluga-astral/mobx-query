@@ -54,7 +54,7 @@ type CachedQueryStore<TResult, TError> =
 /**
  * @description Сервис, позволяющий кэшировать данные.
  */
-export class MobxQuery {
+export class MobxQuery<TDefaultError = void> {
   /**
    * @description объект соответствия хешей ключей и их значений
    */
@@ -182,7 +182,7 @@ export class MobxQuery {
   /**
    * @description метод создания стора, кешируется
    */
-  createQuery = <TResult, TError>(
+  createQuery = <TResult, TError = TDefaultError>(
     key: CacheKey[],
     executor: QueryExecutor<TResult>,
     params?: CreateQueryParams<TResult, TError>,
@@ -208,7 +208,7 @@ export class MobxQuery {
   /**
    * @description метод создания инфинит стора, кешируется
    */
-  createInfiniteQuery = <TResult, TError>(
+  createInfiniteQuery = <TResult, TError = TDefaultError>(
     key: CacheKey[],
     executor: InfiniteExecutor<TResult>,
     params?: CreateInfiniteQueryParams<TResult, TError>,
@@ -234,7 +234,7 @@ export class MobxQuery {
   /**
    * @description метод создания мутации, не кешируется
    */
-  createMutation = <TResult, TError, TExecutorParams>(
+  createMutation = <TResult, TError = TDefaultError, TExecutorParams = void>(
     executor: MutationExecutor<TResult, TExecutorParams>,
     params?: MutationParams<TResult, TError>,
   ) =>
