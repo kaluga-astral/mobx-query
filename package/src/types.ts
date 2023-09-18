@@ -55,4 +55,11 @@ export type FetchPolicy = 'network-only' | 'cache-first';
 /**
  * @description ключ для кешированя
  */
-export type CacheKey = string | string[] | number | { [key: string]: CacheKey };
+export type CacheKey =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | CacheKey[]
+  | { [key: string]: CacheKey };
