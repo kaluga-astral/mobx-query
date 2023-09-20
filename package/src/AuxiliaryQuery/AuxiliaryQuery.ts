@@ -26,7 +26,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   /**
    * @description данные о последней ошибке
    */
-  public error?: TError;
+  public error?: TError = undefined;
 
   /**
    * @description флаг, обозначающий успешность завершения последнего запроса
