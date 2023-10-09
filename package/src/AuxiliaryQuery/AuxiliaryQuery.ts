@@ -36,10 +36,10 @@ export class AuxiliaryQuery<TResult, TError = void> {
   /**
    * @description единый промис, для устранения гонки запросов
    */
-  private unifiedPromise?: Promise<TResult>;
+  public unifiedPromise?: Promise<TResult>;
 
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable(this, { unifiedPromise: false });
   }
 
   /**
