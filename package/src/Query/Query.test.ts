@@ -351,4 +351,23 @@ describe('Query', () => {
       'ожидаем что новые данные после второго запроса так же попадут в стор',
     ).toBe(2);
   });
+
+  it('forceSetData, данные устанавливаются снаружи, запрос не происходит', () => {
+    const onInsideExecutor = vi.fn();
+    const store = new Query(
+      () => {
+        onInsideExecutor();
+
+        return Promise.resolve('foo');
+      },
+      {
+        dataStorage: getDataStorage(),
+      },
+    );
+
+    store.forceSetData('foo');
+    expect(store.data, 'данные установились').toBe('foo');
+    expect(store.isSuccess, 'флаг успешности включен').toBe(true);
+    expect(onInsideExecutor, 'executor не вызывался').not.toBeCalled();
+  });
 });
