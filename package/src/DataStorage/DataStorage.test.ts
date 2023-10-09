@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DataStorage, DataStorageFactory } from './DataStorage';
 
@@ -11,6 +11,22 @@ describe('DataStorage', () => {
     storage.setData(['foo']);
     expect(storage.hasData, 'флаг данных включен').toBe(true);
     expect(storage.data, 'данные появились').toStrictEqual(['foo']);
+  });
+
+  it('setData onUpdate вызывается', () => {
+    const onUpdate = vi.fn();
+    const storage = new DataStorage({ key: ['foo'], onUpdate });
+
+    storage.setData('bar');
+    expect(onUpdate).toBeCalledWith(['foo']);
+  });
+
+  it('setData:skipOnUpdate:true onUpdate не вызывается', () => {
+    const onUpdate = vi.fn();
+    const storage = new DataStorage({ key: ['foo'], onUpdate });
+
+    storage.setData('bar', true);
+    expect(onUpdate).not.toBeCalled();
   });
 });
 

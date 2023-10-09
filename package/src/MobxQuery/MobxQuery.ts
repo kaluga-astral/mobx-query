@@ -7,11 +7,17 @@ import {
 import { Mutation, MutationExecutor, MutationParams } from '../Mutation';
 import { CacheKey, FetchPolicy } from '../types';
 import { DataStorageFactory } from '../DataStorage';
+import { ExpireInspector } from '../ExpireInspector';
 
 /**
  * @description время, спустя которое, запись о query c network-only будет удалена
  */
 const DEFAULT_TIME_TO_CLEAN = 100;
+
+/**
+ * @description временной интервал, раз в который будет запускаться проверка истекших ключей;
+ */
+const DEFAULT_INVALIDATOR_TIME = 60000;
 
 /**
  * @description стандартный обработчик ошибки запроса,
@@ -32,17 +38,31 @@ type MobxQueryParams = {
    * @default false
    */
   enabledAutoFetch?: boolean;
+  /**
+   * @description временной промежуток в мс, раз в который будут проверяться кеши на срок годности
+   * @default 60 000 = 1минута
+   */
+  timeToUpdate?: number;
+};
+
+type WithTimeToLive = {
+  /**
+   * @description временной промежуток в мс, говорящий о том, через какое время, данные для query станут устаревшими
+   */
+  timeToLive?: number;
 };
 
 type CreateQueryParams<TResult, TError> = Omit<
   QueryParams<TResult, TError>,
   'dataStorage'
->;
+> &
+  WithTimeToLive;
 
 type CreateInfiniteQueryParams<TResult, TError> = Omit<
   InfiniteQueryParams<TResult, TError>,
   'dataStorage'
->;
+> &
+  WithTimeToLive;
 
 /**
  * @description внутриний тип кешируемого стора
@@ -96,11 +116,22 @@ export class MobxQuery<TDefaultError = void> {
 
   private serialize = (data: CacheKey | CacheKey[]) => JSON.stringify(data);
 
+  /**
+   * @description инспектор данных по сроку годности
+   */
+  private expireInspector: ExpireInspector;
+
   constructor({
     onError,
     fetchPolicy = 'cache-first',
     enabledAutoFetch = false,
+    timeToUpdate = DEFAULT_INVALIDATOR_TIME,
   }: MobxQueryParams = {}) {
+    this.expireInspector = new ExpireInspector({
+      invalidate: this.invalidate,
+      timeToUpdate,
+    });
+
     this.defaultErrorHandler = onError;
     this.defaultFetchPolicy = fetchPolicy;
     this.defaultEnabledAutoFetch = enabledAutoFetch;
@@ -189,6 +220,10 @@ export class MobxQuery<TDefaultError = void> {
   ) => {
     const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy;
 
+    if (params?.timeToLive) {
+      this.expireInspector.connect(key, params.timeToLive);
+    }
+
     return this.getCachedQuery(
       key,
       () =>
@@ -199,7 +234,10 @@ export class MobxQuery<TDefaultError = void> {
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
           fetchPolicy: fetchPolicy,
-          dataStorage: this.queryDataStorageFactory.getStorage(key),
+          dataStorage: this.queryDataStorageFactory.getStorage<TResult>(
+            key,
+            this.expireInspector.update,
+          ),
         }),
       fetchPolicy,
     ) as Query<TResult, TError>;
@@ -213,7 +251,11 @@ export class MobxQuery<TDefaultError = void> {
     executor: InfiniteExecutor<TResult>,
     params?: CreateInfiniteQueryParams<TResult, TError>,
   ) => {
-    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy || '';
+    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy;
+
+    if (params?.timeToLive) {
+      this.expireInspector.connect(key, params.timeToLive);
+    }
 
     return this.getCachedQuery(
       key,
@@ -224,7 +266,9 @@ export class MobxQuery<TDefaultError = void> {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
-          dataStorage: this.infiniteQueryDataStorageFactory.getStorage(key),
+          dataStorage: this.infiniteQueryDataStorageFactory.getStorage<
+            TResult[]
+          >(key, this.expireInspector.update),
           fetchPolicy: fetchPolicy,
         }),
       fetchPolicy,

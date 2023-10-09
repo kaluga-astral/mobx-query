@@ -304,4 +304,33 @@ describe('MobxQuery', () => {
       'ожидается, что после вызова массовой валидации, сайд эффект загрузки вызывался в executor каждого квери',
     ).toBeCalledTimes(4);
   });
+
+  it('timeToUpdate инвалидируется по времени ', async () => {
+    const mobxQuery = new MobxQuery({
+      timeToUpdate: 100,
+    });
+    const onLoad = vi.fn();
+    const query = mobxQuery.createQuery(
+      ['foo'],
+      () => {
+        onLoad();
+
+        return Promise.resolve('data');
+      },
+      {
+        timeToLive: 50,
+      },
+    );
+
+    // добавляем данные
+    await query.async();
+    vi.runOnlyPendingTimers();
+    // запускаем
+    await query.async();
+
+    expect(
+      onLoad,
+      'ожидается, что по истечении времени просроченные квери инвалидируются',
+    ).toBeCalledTimes(2);
+  });
 });

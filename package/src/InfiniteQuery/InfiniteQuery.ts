@@ -133,7 +133,7 @@ export class InfiniteQuery<TResult, TError = void>
     onSuccess?.(result);
 
     if (isIncrement && this.storage.hasData) {
-      this.storage.setData([...this.storage.data!, ...result]);
+      this.storage.setData([...this.storage.data!, ...result], true);
     } else {
       this.storage.setData(result);
     }
