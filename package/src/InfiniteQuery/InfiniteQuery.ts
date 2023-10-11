@@ -129,7 +129,6 @@ export class InfiniteQuery<TResult, TError = void>
     onSuccess?: (res: TResult[]) => void,
     isIncrement?: boolean,
   ) => {
-    this.auxiliary.submitSuccess();
     onSuccess?.(result);
 
     if (isIncrement && this.storage.hasData) {
