@@ -3,6 +3,9 @@ import { makeAutoObservable } from 'mobx';
 import { CacheKey } from '../types';
 
 type DataStorageParams = {
+  /**
+   * @description коллбэк метод для оповещения об обновлении данных
+   */
   onUpdate?: (keys: CacheKey[]) => void;
   key: CacheKey[];
 };
@@ -49,10 +52,23 @@ export class DataStorage<TData> {
   }
 }
 
+type DataStorageFactoryParams = {
+  /**
+   * @description коллбэк метод для оповещения об обновлении данных
+   */
+  onUpdate?: (keys: CacheKey[]) => void;
+};
+
 /**
  * @description фабрика ответственная за создание и хранение экземляров хранилищ
  */
 export class DataStorageFactory {
+  private params: DataStorageFactoryParams;
+
+  constructor(params: DataStorageFactoryParams) {
+    this.params = params;
+  }
+
   /**
    * @description Map хранящий инстансы хранилищ по хэшу ключа
    */
@@ -61,14 +77,14 @@ export class DataStorageFactory {
   /**
    * @description фабричный метод получения/создания инстанса хранилища по ключу
    */
-  public getStorage = <TData>(
-    key: CacheKey[],
-    onUpdate?: (keys: CacheKey[]) => void,
-  ) => {
+  public getStorage = <TData>(key: CacheKey[]) => {
     const keyHash = JSON.stringify(key);
 
     if (!this.storageMap.has(keyHash)) {
-      this.storageMap.set(keyHash, new DataStorage({ onUpdate, key }));
+      this.storageMap.set(
+        keyHash,
+        new DataStorage({ onUpdate: this.params.onUpdate, key }),
+      );
     }
 
     return this.storageMap.get(keyHash) as DataStorage<TData>;

@@ -91,12 +91,12 @@ export class MobxQuery<TDefaultError = void> {
   /**
    * @description фабрика создания хранилищ данных для обычного Query
    */
-  private queryDataStorageFactory = new DataStorageFactory();
+  private queryDataStorageFactory: DataStorageFactory;
 
   /**
    * @description фабрика создания хранилищ данных для Infinite Query
    */
-  private infiniteQueryDataStorageFactory = new DataStorageFactory();
+  private infiniteQueryDataStorageFactory: DataStorageFactory;
 
   /**
    * @description стандартный обработчик ошибок, будет использован, если не передан другой
@@ -130,6 +130,14 @@ export class MobxQuery<TDefaultError = void> {
     this.expireInspector = new ExpireInspector({
       invalidate: this.invalidate,
       timeToUpdate,
+    });
+
+    this.queryDataStorageFactory = new DataStorageFactory({
+      onUpdate: this.expireInspector.update,
+    });
+
+    this.infiniteQueryDataStorageFactory = new DataStorageFactory({
+      onUpdate: this.expireInspector.update,
     });
 
     this.defaultErrorHandler = onError;
@@ -234,10 +242,7 @@ export class MobxQuery<TDefaultError = void> {
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
           fetchPolicy: fetchPolicy,
-          dataStorage: this.queryDataStorageFactory.getStorage<TResult>(
-            key,
-            this.expireInspector.update,
-          ),
+          dataStorage: this.queryDataStorageFactory.getStorage<TResult>(key),
         }),
       fetchPolicy,
     ) as Query<TResult, TError>;
@@ -266,9 +271,8 @@ export class MobxQuery<TDefaultError = void> {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
-          dataStorage: this.infiniteQueryDataStorageFactory.getStorage<
-            TResult[]
-          >(key, this.expireInspector.update),
+          dataStorage:
+            this.infiniteQueryDataStorageFactory.getStorage<TResult[]>(key),
           fetchPolicy: fetchPolicy,
         }),
       fetchPolicy,

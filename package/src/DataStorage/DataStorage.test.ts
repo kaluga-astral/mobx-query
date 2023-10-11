@@ -32,7 +32,7 @@ describe('DataStorage', () => {
 
 describe('DataStorageFactory', () => {
   it('Инстансы хранилищ с одинаковым ключом совпадают', () => {
-    const factory = new DataStorageFactory();
+    const factory = new DataStorageFactory({});
 
     const storageA = factory.getStorage(['foo']);
     const storageB = factory.getStorage(['foo']);
@@ -41,7 +41,7 @@ describe('DataStorageFactory', () => {
   });
 
   it('Инстансы хранилищ с разными ключами отличаются', () => {
-    const factory = new DataStorageFactory();
+    const factory = new DataStorageFactory({});
 
     const storageA = factory.getStorage(['foo']);
     const storageB = factory.getStorage(['bar']);
