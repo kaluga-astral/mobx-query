@@ -17,7 +17,7 @@ const DEFAULT_TIME_TO_CLEAN = 100;
 /**
  * @description временной интервал, раз в который будет запускаться проверка истекших ключей;
  */
-const DEFAULT_INVALIDATOR_TIME = 60000;
+const DEFAULT_TIME_TO_UPDATE = 60000;
 
 /**
  * @description стандартный обработчик ошибки запроса,
@@ -125,7 +125,7 @@ export class MobxQuery<TDefaultError = void> {
     onError,
     fetchPolicy = 'cache-first',
     enabledAutoFetch = false,
-    timeToUpdate = DEFAULT_INVALIDATOR_TIME,
+    timeToUpdate = DEFAULT_TIME_TO_UPDATE,
   }: MobxQueryParams = {}) {
     this.expireInspector = new ExpireInspector({
       invalidate: this.invalidate,
