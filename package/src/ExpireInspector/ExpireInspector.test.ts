@@ -82,6 +82,6 @@ describe('ExpireInspector tests', () => {
     expect(
       onInvalidate,
       'как пользователь вернулся, инвалидируем истекшие данные',
-    ).toBeCalledWith([fooKey]);
+    ).toBeCalledWith(fooKey);
   });
 });

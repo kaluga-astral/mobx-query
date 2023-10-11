@@ -56,7 +56,7 @@ export class DataStorageFactory {
   /**
    * @description Map хранящий инстансы хранилищ по хэшу ключа
    */
-  private storageMap = new Map<CacheKey[], DataStorage<unknown>>();
+  private storageMap = new Map<string, DataStorage<unknown>>();
 
   /**
    * @description фабричный метод получения/создания инстанса хранилища по ключу
@@ -65,10 +65,12 @@ export class DataStorageFactory {
     key: CacheKey[],
     onUpdate?: (keys: CacheKey[]) => void,
   ) => {
-    if (!this.storageMap.has(key)) {
-      this.storageMap.set(key, new DataStorage({ onUpdate, key }));
+    const keyHash = JSON.stringify(key);
+
+    if (!this.storageMap.has(keyHash)) {
+      this.storageMap.set(keyHash, new DataStorage({ onUpdate, key }));
     }
 
-    return this.storageMap.get(key) as DataStorage<TData>;
+    return this.storageMap.get(keyHash) as DataStorage<TData>;
   };
 }
