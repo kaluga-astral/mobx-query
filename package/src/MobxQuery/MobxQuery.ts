@@ -15,11 +15,6 @@ import { ExpireInspector } from '../ExpireInspector';
 const DEFAULT_TIME_TO_CLEAN = 100;
 
 /**
- * @description временной интервал, раз в который будет запускаться проверка истекших ключей;
- */
-const DEFAULT_TIME_TO_UPDATE = 60000;
-
-/**
  * @description стандартный обработчик ошибки запроса,
  * будет вызван, если при вызове sync не был передан отдельный onError параметр
  */
@@ -38,11 +33,6 @@ type MobxQueryParams = {
    * @default false
    */
   enabledAutoFetch?: boolean;
-  /**
-   * @description временной промежуток в мс, раз в который будут проверяться кеши на срок годности
-   * @default 60 000 = 1минута
-   */
-  timeToUpdate?: number;
 };
 
 type WithTimeToLive = {
@@ -125,11 +115,9 @@ export class MobxQuery<TDefaultError = void> {
     onError,
     fetchPolicy = 'cache-first',
     enabledAutoFetch = false,
-    timeToUpdate = DEFAULT_TIME_TO_UPDATE,
   }: MobxQueryParams = {}) {
     this.expireInspector = new ExpireInspector({
       invalidate: this.invalidate,
-      timeToUpdate,
     });
 
     this.queryDataStorageFactory = new DataStorageFactory({

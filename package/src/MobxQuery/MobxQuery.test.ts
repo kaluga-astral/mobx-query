@@ -306,9 +306,7 @@ describe('MobxQuery', () => {
   });
 
   it('timeToUpdate инвалидируется по времени ', async () => {
-    const mobxQuery = new MobxQuery({
-      timeToUpdate: 100,
-    });
+    const mobxQuery = new MobxQuery();
     const onLoad = vi.fn();
     const query = mobxQuery.createQuery(
       ['foo'],

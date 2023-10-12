@@ -9,7 +9,6 @@ describe('ExpireInspector tests', () => {
     const onInvalidate = vi.fn();
 
     const inspector = new ExpireInspector({
-      timeToUpdate: 100,
       invalidate: onInvalidate,
     });
 
@@ -18,43 +17,95 @@ describe('ExpireInspector tests', () => {
     expect(onInvalidate).not.toBeCalled();
   });
 
-  it('connect:update:timeToLive<timeToUpdate по истечении времени invalidate вызывается', () => {
+  it('findNextTime:no-update время до вызова - бесконечность', () => {
+    const inspector = new ExpireInspector({
+      invalidate: vi.fn(),
+    });
+
+    const keyFoo = ['foo'];
+
+    inspector.connect(keyFoo, 500);
+
+    const timeToNextCall = inspector.findNextTime();
+
+    expect(timeToNextCall).toBe(Infinity);
+  });
+
+  it('findNextTime:update время до вызова - для элемент для которого был вызван update', () => {
     const onInvalidate = vi.fn();
 
     const inspector = new ExpireInspector({
-      timeToUpdate: 100,
       invalidate: onInvalidate,
     });
 
-    const key = ['foo'];
+    const keyFoo = ['foo'];
+    const keyBar = ['bar'];
 
-    inspector.connect(key, 50);
-    inspector.update(key);
-    vi.runOnlyPendingTimers();
-    expect(onInvalidate).toBeCalled();
+    inspector.connect(keyFoo, 500);
+    inspector.connect(keyBar, 100);
+    inspector.update(keyFoo);
+
+    const timeToNextCall = inspector.findNextTime();
+
+    expect(timeToNextCall).toBe(500);
   });
 
-  it('connect:update:timeToLive>timeToUpdate по истечении времени invalidate не вызывается', () => {
+  it('findNextTime:update время до вызова - минимальный из имеющихся', () => {
     const onInvalidate = vi.fn();
 
     const inspector = new ExpireInspector({
-      timeToUpdate: 100,
       invalidate: onInvalidate,
     });
 
-    inspector.connect(['foo'], 200);
-    inspector.update(['foo']);
-    vi.runOnlyPendingTimers();
-    expect(onInvalidate).not.toBeCalled();
+    const keyFoo = ['foo'];
+    const keyBar = ['bar'];
+
+    inspector.connect(keyFoo, 500);
+    inspector.connect(keyBar, 100);
+    inspector.update(keyFoo);
+    inspector.update(keyBar);
+
+    const timeToNextCall = inspector.findNextTime();
+
+    expect(timeToNextCall).toBe(100);
   });
 
-  it('connect:update:tab-hidden:timeToLive<timeToUpdate invalidate не вызывается', () => {
+  it('findNextTime:update:spentSomeTime время до вызова - минимальный из имеющихся', () => {
+    const onInvalidate = vi.fn();
+
+    const inspector = new ExpireInspector({
+      invalidate: onInvalidate,
+    });
+
+    const keyFoo = ['foo'];
+    const keyBar = ['bar'];
+
+    inspector.connect(keyFoo, 600);
+    inspector.connect(keyBar, 100);
+    inspector.update(keyFoo);
+    inspector.update(keyBar);
+    // ждем 200 мс, за которые должен сработать один таймер
+    vi.advanceTimersByTime(200);
+
+    expect(
+      onInvalidate,
+      'за истекшее время вызвалась инвалидация для истекшего элемента',
+    ).toBeCalledWith(['bar']);
+
+    const timeToNextCall = inspector.findNextTime();
+
+    expect(
+      timeToNextCall,
+      'до следующего таймера осталась разница между прошедшим временем и следующим',
+    ).toBe(400);
+  });
+
+  it('connect:update:tab-hidden invalidate не вызывается', () => {
     const currentDate = new Date();
 
     const onInvalidate = vi.fn();
 
     const inspector = new ExpireInspector({
-      timeToUpdate: 100,
       invalidate: onInvalidate,
     });
 

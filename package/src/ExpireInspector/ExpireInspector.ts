@@ -8,7 +8,7 @@ type ExpireInspectorItem = {
   /**
    * @description запись говорящая о том, когда данные были последний раз были обновлены
    */
-  lastUpdate?: Date;
+  expireAt?: number;
   /**
    * @description флаг говорящий о том, что данные не актуальны
    */
@@ -16,10 +16,6 @@ type ExpireInspectorItem = {
 };
 
 type ExpireInspectorParams = {
-  /**
-   * @description временной промежуток в мс, раз в который будут проверяться кеши на срок годности
-   */
-  timeToUpdate: number;
   /**
    * @description метод для инвалидации по массиву хешей
    */
@@ -66,8 +62,10 @@ export class ExpireInspector {
       this.items.set(keyHash, {
         ...current,
         isExpired: false,
-        lastUpdate: new Date(),
+        expireAt: Date.now() + current.timeToLive,
       });
+
+      this.setTimer();
     }
   };
 
@@ -82,15 +80,13 @@ export class ExpireInspector {
       return;
     }
 
-    const date = new Date();
+    const currentDate = Date.now();
 
     const keysToInvalidate: CacheKey[] = [];
 
     this.items.forEach((item, keyHash) => {
       const isExpired =
-        !item.isExpired &&
-        item.lastUpdate &&
-        +item.lastUpdate <= +date - item.timeToLive;
+        !item.isExpired && item.expireAt && item.expireAt <= currentDate;
 
       if (isExpired) {
         this.items.set(keyHash, { ...item, isExpired: true });
@@ -115,12 +111,15 @@ export class ExpireInspector {
    * @description обработчик деактивации вкладки с приложением
    */
   public handleHiddenState = () => {
-    clearInterval(this.timer);
+    clearTimeout(this.timer);
+  };
+
+  private clearTimer = () => {
+    clearTimeout(this.timer);
+    this.timer = undefined;
   };
 
   private init = () => {
-    this.setTimer();
-
     globalThis.document?.addEventListener('visibilitychange', () => {
       if (globalThis.document?.visibilityState === 'visible') {
         this.handleVisibleState();
@@ -130,10 +129,52 @@ export class ExpireInspector {
     });
   };
 
+  /**
+   * @description метод для поиска значения следующего таймера
+   */
+  public findNextTime = () => {
+    const currentDate = Date.now();
+
+    let time = Infinity;
+
+    this.items.forEach(({ isExpired, expireAt }) => {
+      const isValid = !isExpired && expireAt;
+
+      if (!isValid) {
+        return;
+      }
+
+      const diff = expireAt - currentDate;
+
+      if (diff < time) {
+        time = diff;
+      }
+    });
+
+    if (time < 0) {
+      return 0;
+    }
+
+    return time;
+  };
+
   private setTimer = () => {
-    this.timer = (globalThis as unknown as Window).setInterval(
-      this.checkItems,
-      this.params.timeToUpdate,
-    );
+    // делаем предварительную очистку,
+    // т.к. таймер может быть уже запущен
+    if (this.timer) {
+      this.clearTimer();
+    }
+
+    const nextTime = this.findNextTime();
+
+    if (nextTime === Infinity) {
+      return;
+    }
+
+    this.timer = (globalThis as unknown as Window).setTimeout(() => {
+      this.timer = undefined;
+      this.checkItems();
+      this.setTimer();
+    }, nextTime);
   };
 }
