@@ -354,13 +354,22 @@ describe('InfiniteQuery', () => {
     ).toStrictEqual([2]);
   });
 
-  it('forceUpdate, данные устанавливаются снаружи, запрос не происходит', () => {
+  it('forceUpdate, данные устанавливаются снаружи', () => {
+    const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
+      dataStorage: getDataStorage(),
+    });
+
+    store.forceUpdate(['foo']);
+    expect(store.data, 'данные установились').toBe('foo');
+  });
+
+  it('forceUpdate, запрос не происходит', () => {
     const onInsideExecutor = vi.fn();
     const store = new InfiniteQuery(
       () => {
         onInsideExecutor();
 
-        return Promise.resolve<string[]>([]);
+        return Promise.resolve(['foo']);
       },
       {
         dataStorage: getDataStorage(),
@@ -368,8 +377,15 @@ describe('InfiniteQuery', () => {
     );
 
     store.forceUpdate(['foo']);
-    expect(store.data, 'данные установились').toStrictEqual(['foo']);
-    expect(store.isSuccess, 'флаг успешности включен').toBe(true);
     expect(onInsideExecutor, 'executor не вызывался').not.toBeCalled();
+  });
+
+  it('forceUpdate, флаг успешности включен', () => {
+    const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
+      dataStorage: getDataStorage(),
+    });
+
+    store.forceUpdate(['foo']);
+    expect(store.isSuccess, 'флаг успешности включен').toBe(true);
   });
 });
