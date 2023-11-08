@@ -183,7 +183,7 @@ mobxQuery.invalidateQueries();
 
 # Ручная установка данных в кэш
 
-Для установки данных, без исполнения executor, используйте метод `forceUpdate`
+Для установки данных, без исполнения executor, используйте метод `forceUpdate`. При использовании устанавливаются флаги isError=false и isSuccess=true
 
 ```ts
 query.forceUpdate('foo');
