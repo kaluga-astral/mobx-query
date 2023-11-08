@@ -152,6 +152,16 @@ export class InfiniteQuery<TResult, TError = void>
   };
 
   /**
+   * @description форс метод для установки данных
+   */
+  public forceUpdate = (data: TResult[]) => {
+    this.offset = 0;
+    this.isEndReached = false;
+    this.auxiliary.submitSuccess();
+    this.submitSuccess(data);
+  };
+
+  /**
    * @description метод для обогащения параметров текущими значениями для инфинити
    */
   private get infiniteExecutor(): () => Promise<Array<TResult>> {

@@ -352,7 +352,7 @@ describe('Query', () => {
     ).toBe(2);
   });
 
-  it('forceSetData, данные устанавливаются снаружи, запрос не происходит', () => {
+  it('forceUpdate, данные устанавливаются снаружи, запрос не происходит', () => {
     const onInsideExecutor = vi.fn();
     const store = new Query(
       () => {
@@ -365,7 +365,7 @@ describe('Query', () => {
       },
     );
 
-    store.forceSetData('foo');
+    store.forceUpdate('foo');
     expect(store.data, 'данные установились').toBe('foo');
     expect(store.isSuccess, 'флаг успешности включен').toBe(true);
     expect(onInsideExecutor, 'executor не вызывался').not.toBeCalled();

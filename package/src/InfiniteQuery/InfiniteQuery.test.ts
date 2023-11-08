@@ -353,4 +353,23 @@ describe('InfiniteQuery', () => {
       'ожидаем что новые данные после второго запроса так же попадут в стор',
     ).toStrictEqual([2]);
   });
+
+  it('forceUpdate, данные устанавливаются снаружи, запрос не происходит', () => {
+    const onInsideExecutor = vi.fn();
+    const store = new InfiniteQuery(
+      () => {
+        onInsideExecutor();
+
+        return Promise.resolve<string[]>([]);
+      },
+      {
+        dataStorage: getDataStorage(),
+      },
+    );
+
+    store.forceUpdate(['foo']);
+    expect(store.data, 'данные установились').toStrictEqual(['foo']);
+    expect(store.isSuccess, 'флаг успешности включен').toBe(true);
+    expect(onInsideExecutor, 'executor не вызывался').not.toBeCalled();
+  });
 });

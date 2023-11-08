@@ -119,9 +119,9 @@ export class Query<TResult, TError = void>
   };
 
   /**
-   * @description форс метод для установки данных снаружи
+   * @description форс метод для установки данных
    */
-  public forceSetData = (data: TResult) => {
+  public forceUpdate = (data: TResult) => {
     this.auxiliary.submitSuccess();
     this.submitSuccess(data);
   };
