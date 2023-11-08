@@ -360,7 +360,7 @@ describe('InfiniteQuery', () => {
     });
 
     store.forceUpdate(['foo']);
-    expect(store.data, 'данные установились').toBe('foo');
+    expect(store.data, 'данные установились').toStrictEqual(['foo']);
   });
 
   it('forceUpdate, запрос не происходит', () => {
