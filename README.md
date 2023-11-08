@@ -19,6 +19,7 @@
   - [Автоматический](#3-автоматический)
 - [Инвалидация данных](#инвалидация-данных)
   - [Особенности инвалидации](#особенности-инвалидации)
+- [Ручная установка данных в кэш](#ручная-установка-данных-в-кэш)
 - [InfiniteQuery](#infinitequery)
   - [isEndReached](#isendreached)
 - [Mutation](#mutation)
@@ -178,6 +179,14 @@ mobxQuery.invalidate(['key one']); // ключ не совпадает, query Н
 Для инвалидации всех query необходимо использовать метод `invalidateQueries`
 ```ts
 mobxQuery.invalidateQueries();
+```
+
+# Ручная установка данных в кэш
+
+Для установки данных, без исполнения executor, используйте метод `forceUpdate`. При вызове все статусные флаги устанавливаются как success состояние
+
+```ts
+query.forceUpdate('foo');
 ```
 
 # InfiniteQuery

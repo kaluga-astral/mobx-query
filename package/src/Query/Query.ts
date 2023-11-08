@@ -119,6 +119,14 @@ export class Query<TResult, TError = void>
   };
 
   /**
+   * @description форс метод для установки данных
+   */
+  public forceUpdate = (data: TResult) => {
+    this.auxiliary.submitSuccess();
+    this.submitSuccess(data);
+  };
+
+  /**
    * @description метод для переиспользования синхронной логики запроса
    */
   private proceedSync: Sync<TResult, TError> = (options) => {
