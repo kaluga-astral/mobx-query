@@ -380,12 +380,13 @@ describe('InfiniteQuery', () => {
     expect(onInsideExecutor, 'executor не вызывался').not.toBeCalled();
   });
 
-  it('forceUpdate, флаг успешности включен', () => {
+  it('При вызове forceUpdate все стаусные флаги устанавливаются в success', () => {
     const store = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: getDataStorage(),
     });
 
     store.forceUpdate(['foo']);
-    expect(store.isSuccess, 'флаг успешности включен').toBe(true);
+    expect(store.isSuccess).toBe(true);
+    expect(store.isError).toBe(false);
   });
 });

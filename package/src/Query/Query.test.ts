@@ -386,7 +386,7 @@ describe('Query', () => {
     expect(onInsideExecutor, 'executor не вызывался').not.toBeCalled();
   });
 
-  it('forceUpdate, флаг успешности включен', () => {
+  it('При вызове forceUpdate все стаусные флаги устанавливаются в success', () => {
     const onInsideExecutor = vi.fn();
     const store = new Query(
       () => {
@@ -400,6 +400,7 @@ describe('Query', () => {
     );
 
     store.forceUpdate('foo');
-    expect(store.isSuccess, 'флаг успешности включен').toBe(true);
+    expect(store.isSuccess).toBe(true);
+    expect(store.isError).toBe(false);
   });
 });
