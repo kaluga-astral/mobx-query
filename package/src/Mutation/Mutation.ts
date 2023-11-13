@@ -1,7 +1,7 @@
 import { makeAutoObservable } from 'mobx';
 
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
-import { QueryBaseActions, Sync, SyncParams } from '../types';
+import type { QueryBaseActions, Sync, SyncParams } from '../types';
 
 /**
  * @description исполнитель запроса
