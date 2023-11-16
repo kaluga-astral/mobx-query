@@ -1,6 +1,6 @@
 import { makeAutoObservable } from 'mobx';
 
-import { CacheKey } from '../types';
+import type { CacheKey } from '../types';
 
 /**
  * @description хранилище данных, предназначено для обеспечения единого интерфейса при работе с данными

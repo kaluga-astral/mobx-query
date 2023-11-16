@@ -1,8 +1,8 @@
 import { makeAutoObservable, when } from 'mobx';
 
-import { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
+import type { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
-import { DataStorage } from '../DataStorage';
+import type { DataStorage } from '../DataStorage';
 
 export const DEFAULT_INFINITE_ITEMS_COUNT = 30;
 

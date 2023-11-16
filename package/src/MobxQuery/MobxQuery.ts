@@ -1,11 +1,10 @@
-import { Query, QueryExecutor, QueryParams } from '../Query';
-import {
-  InfiniteExecutor,
-  InfiniteQuery,
-  InfiniteQueryParams,
-} from '../InfiniteQuery';
-import { Mutation, MutationExecutor, MutationParams } from '../Mutation';
-import { CacheKey, FetchPolicy } from '../types';
+import type { QueryExecutor, QueryParams } from '../Query';
+import { Query } from '../Query';
+import type { InfiniteExecutor, InfiniteQueryParams } from '../InfiniteQuery';
+import { InfiniteQuery } from '../InfiniteQuery';
+import type { MutationExecutor, MutationParams } from '../Mutation';
+import { Mutation } from '../Mutation';
+import type { CacheKey, FetchPolicy } from '../types';
 import { DataStorageFactory } from '../DataStorage';
 
 /**
