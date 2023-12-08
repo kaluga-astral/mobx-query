@@ -6,10 +6,11 @@
     "PRLinter"
   ],
   "devDependencies": {
-    "@astral/commitlint-config": "^2.0.0",
-    "@astral/eslint-config-react-ts": "^2.0.0",
+    "@astral/commitlint-config": "^2.2.0",
+    "@astral/eslint-config-react-ts": "^2.2.0",
+    "@astral/eslint-config-vitest": "^2.2.0",
     "@astral/pack": "*",
-    "@astral/prettier-config": "^2.0.0",
+    "@astral/prettier-config": "^2.2.0",
     "@semantic-release/changelog": "^6.0.1",
     "@semantic-release/commit-analyzer": "^9.0.2",
     "@semantic-release/exec": "^6.0.3",
@@ -26,9 +27,9 @@
     "prettier": "^3.0.3",
     "rimraf": "^3.0.2",
     "semantic-release": "^19.0.5",
-    "typescript": "^5.0.4",
-    "vite": "^4.3.7",
-    "vitest": "^0.31.0"
+    "typescript": "^5.3.3",
+    "vite": "^5.0.7",
+    "vitest": "^1.0.2"
   },
   "scripts": {
     "lint": "npm run lint:all --workspaces --if-present",

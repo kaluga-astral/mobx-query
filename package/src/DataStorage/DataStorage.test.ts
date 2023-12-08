@@ -6,10 +6,15 @@ describe('DataStorage', () => {
   it('Данные меняются, флаг наличия данных меняется', () => {
     const storage = new DataStorage();
 
-    expect(storage.data, 'данных изначально нет').toBe(undefined);
-    expect(storage.hasData, 'флаг данных выключен').toBe(false);
+    // TODO: для каждого expect должен быть свой тест-кейс: https://track.astral.ru/soft/browse/UIKIT-1081
+    // eslint-disable-next-line vitest/valid-expect
+    expect(storage.data, 'данных изначально нет').toBeUndefined();
+    // eslint-disable-next-line vitest/valid-expect
+    expect(storage.hasData, 'флаг данных выключен').toBeFalsy();
     storage.setData(['foo']);
-    expect(storage.hasData, 'флаг данных включен').toBe(true);
+    // eslint-disable-next-line vitest/valid-expect
+    expect(storage.hasData, 'флаг данных включен').toBeTruthy();
+    // eslint-disable-next-line vitest/valid-expect
     expect(storage.data, 'данные появились').toStrictEqual(['foo']);
   });
 });
@@ -21,7 +26,7 @@ describe('DataStorageFactory', () => {
     const storageA = factory.getStorage(['foo']);
     const storageB = factory.getStorage(['foo']);
 
-    expect(storageA === storageB).toBe(true);
+    expect(storageA === storageB).toBeTruthy();
   });
 
   it('Инстансы хранилищ с разными ключами отличаются', () => {
@@ -30,6 +35,6 @@ describe('DataStorageFactory', () => {
     const storageA = factory.getStorage(['foo']);
     const storageB = factory.getStorage(['bar']);
 
-    expect(storageA !== storageB).toBe(true);
+    expect(storageA !== storageB).toBeTruthy();
   });
 });

@@ -1,3 +1,7 @@
+// TODO: отрефакторить тест-кейсы в соответствии с Unit Testing Guide: https://track.astral.ru/soft/browse/UIKIT-1081
+/* eslint-disable vitest/valid-expect */
+/* eslint-disable vitest/max-expects */
+
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
@@ -13,10 +17,10 @@ describe('InfiniteQuery', () => {
       dataStorage: getDataStorage(),
     });
 
-    expect(store.isError).toBe(false);
-    expect(store.isLoading).toBe(false);
-    expect(store.data).toBe(undefined);
-    expect(store.error).toBe(undefined);
+    expect(store.isError).toBeFalsy();
+    expect(store.isLoading).toBeFalsy();
+    expect(store.data).toBeUndefined();
+    expect(store.error).toBeUndefined();
   });
 
   it('sync:fetchPolicy=cache-first: стандартная загрузка успешна', async () => {
@@ -26,7 +30,7 @@ describe('InfiniteQuery', () => {
     });
 
     store.sync({ onSuccess });
-    expect(store.data).toBe(undefined);
+    expect(store.data).toBeUndefined();
     await when(() => !store.isLoading);
     expect(onSuccess).toBeCalled();
     expect(store.data).toStrictEqual(['foo']);
@@ -42,8 +46,8 @@ describe('InfiniteQuery', () => {
 
     store.sync({ onError });
     await when(() => !store.isLoading);
-    expect(store.data, 'данные не должны появиться').toBe(undefined);
-    expect(store.isError, 'флаг ошибки должен включиться').toBe(true);
+    expect(store.data, 'данные не должны появиться').toBeUndefined();
+    expect(store.isError, 'флаг ошибки должен включиться').toBeTruthy();
     await when(() => store.error !== undefined);
     expect(store.error, 'поле ошибки содержит данные ошибки').toBe('error');
 
@@ -52,6 +56,7 @@ describe('InfiniteQuery', () => {
       'стандартный обработчик ошибки не должен быть вызван',
     ).not.toBeCalled();
 
+    // eslint-disable-next-line vitest/max-expects
     expect(
       onError,
       'переданный обработчик ошибки должен быть вызван, и в него должна передаться ошибка',
@@ -83,7 +88,7 @@ describe('InfiniteQuery', () => {
     expect(
       store.data,
       'эмулируем обращение к data, чтобы тригернуть загрузку данных',
-    ).toBe(undefined);
+    ).toBeUndefined();
 
     await when(() => !store.isLoading);
 
@@ -106,7 +111,7 @@ describe('InfiniteQuery', () => {
     expect(
       store.data?.[0] !== firstValue,
       'ожидаем, что данные изменились',
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
   it('data: автоматический запрос данных при обращении к data', async () => {
@@ -120,14 +125,14 @@ describe('InfiniteQuery', () => {
     expect(
       store.isLoading,
       'ожидаем, что загрузка не началась сама по себе',
-    ).toBe(false);
+    ).toBeFalsy();
 
-    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    expect(store.data, 'эмулируем считывание данных').toBeUndefined();
 
     expect(
       store.isLoading,
       'ожидаем, что после считывания данных загрузка началась',
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
   it('enabledAutoFetch:true:request:fail не происходит повторных запросов', async () => {
@@ -144,10 +149,10 @@ describe('InfiniteQuery', () => {
       },
     );
 
-    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    expect(store.data, 'эмулируем считывание данных').toBeUndefined();
     await when(() => !store.isLoading);
     expect(insideExecutor, 'executor вызван в первый раз').toBeCalled();
-    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    expect(store.data, 'эмулируем считывание данных').toBeUndefined();
     await when(() => !store.isLoading);
     expect(insideExecutor, 'executor больше не вызывается').toBeCalledTimes(1);
   });
@@ -187,9 +192,10 @@ describe('InfiniteQuery', () => {
     // запускаем fetchMore метод
     store.fetchMore();
 
-    expect(store.isEndReached, 'флаг окончания списка не достигнут').toBe(
-      false,
-    );
+    expect(
+      store.isEndReached,
+      'флаг окончания списка не достигнут',
+    ).toBeFalsy();
 
     await when(() => !store.isLoading);
 
@@ -198,9 +204,10 @@ describe('InfiniteQuery', () => {
       'второй вызов executor произошел с {offset: 1}',
     ).toHaveBeenLastCalledWith({ offset: 1, count: 1 });
 
-    expect(store.isEndReached, 'флаг окончания списка не достигнут').toBe(
-      false,
-    );
+    expect(
+      store.isEndReached,
+      'флаг окончания списка не достигнут',
+    ).toBeFalsy();
 
     expect(store.data, 'данные добавились').toStrictEqual(['foo', 'foo']);
     // снова запускаем fetchMore
@@ -215,14 +222,15 @@ describe('InfiniteQuery', () => {
     expect(
       store.isEndReached,
       'ожидаем, что бэк отдал пустой массив, следовательно, мы достигли конца списка',
-    ).toBe(true);
+    ).toBeTruthy();
 
     // при еще одной попытке сделать запрос
     store.fetchMore();
 
-    expect(store.isLoading, 'ожидаем что вызов будет проигнорирован').toBe(
-      false,
-    );
+    expect(
+      store.isLoading,
+      'ожидаем что вызов будет проигнорирован',
+    ).toBeFalsy();
 
     // ожидаем, что при инвалидации, данные будут заменены на начальный набор
     store.invalidate();
@@ -250,7 +258,7 @@ describe('InfiniteQuery', () => {
     expect(
       store.isEndReached,
       'после запроса флаг окончания списка включен',
-    ).toBe(true);
+    ).toBeTruthy();
 
     store.invalidate();
     store.sync();
@@ -258,7 +266,7 @@ describe('InfiniteQuery', () => {
     expect(
       store.isEndReached,
       'не дожидаясь окончания запроса, флаг окончания списка выключен',
-    ).toBe(false);
+    ).toBeFalsy();
   });
 
   it('data-synchronization: Данные между двумя сторами синхронизируются, если они используют одно хранилище', async () => {
@@ -345,7 +353,7 @@ describe('InfiniteQuery', () => {
 
     // запускаем сразу второй запрос, который по обычной политике должен быть проигнорирован
     store.sync();
-    expect(store.isLoading, 'ожидаем что загрузка началась').toBe(true);
+    expect(store.isLoading, 'ожидаем что загрузка началась').toBeTruthy();
     await when(() => !store.isLoading);
 
     expect(
@@ -386,7 +394,7 @@ describe('InfiniteQuery', () => {
     });
 
     store.forceUpdate(['foo']);
-    expect(store.isSuccess).toBe(true);
-    expect(store.isError).toBe(false);
+    expect(store.isSuccess).toBeTruthy();
+    expect(store.isError).toBeFalsy();
   });
 });

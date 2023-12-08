@@ -1,3 +1,7 @@
+// TODO: отрефакторить тест-кейсы в соответствии с Unit Testing Guide: https://track.astral.ru/soft/browse/UIKIT-1081
+/* eslint-disable vitest/valid-expect */
+/* eslint-disable vitest/max-expects */
+
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
@@ -13,11 +17,11 @@ describe('Query', () => {
       dataStorage: getDataStorage(),
     });
 
-    expect(store.isError).toBe(false);
-    expect(store.isLoading).toBe(false);
-    expect(store.isSuccess).toBe(false);
-    expect(store.data).toBe(undefined);
-    expect(store.error).toBe(undefined);
+    expect(store.isError).toBeFalsy();
+    expect(store.isLoading).toBeFalsy();
+    expect(store.isSuccess).toBeFalsy();
+    expect(store.data).toBeUndefined();
+    expect(store.error).toBeUndefined();
   });
 
   it('sync:fetchPolicy=cache-first: стандартная загрузка успешна', async () => {
@@ -27,7 +31,7 @@ describe('Query', () => {
     });
 
     store.sync({ onSuccess });
-    expect(store.data).toBe(undefined);
+    expect(store.data).toBeUndefined();
     await when(() => !store.isLoading);
     expect(onSuccess).toBeCalled();
     expect(store.data).toBe('foo');
@@ -39,8 +43,8 @@ describe('Query', () => {
     });
 
     await store.async();
-    expect(store.isSuccess, 'флаг успешности должен быть включен').toBe(true);
-    expect(store.isError, 'флаг ошибки должен быть выключен').toBe(false);
+    expect(store.isSuccess, 'флаг успешности должен быть включен').toBeTruthy();
+    expect(store.isError, 'флаг ошибки должен быть выключен').toBeFalsy();
   });
 
   it('isSuccess:isError При провальном запросе устанавливаются соответствующие флаги', async () => {
@@ -49,8 +53,8 @@ describe('Query', () => {
     });
 
     await store.async().catch((e) => e);
-    expect(store.isSuccess, 'флаг успешности должен быть выключен').toBe(false);
-    expect(store.isError, 'флаг ошибки должен быть включен').toBe(true);
+    expect(store.isSuccess, 'флаг успешности должен быть выключен').toBeFalsy();
+    expect(store.isError, 'флаг ошибки должен быть включен').toBeTruthy();
   });
 
   it('isSuccess:isError:fetchPolicy=network-only: флаги переключаются в соответствующее значение, в зависимости от ответа', async () => {
@@ -78,12 +82,12 @@ describe('Query', () => {
     expect(
       store.isSuccess,
       'при успешном запроса, флаг успешности должен быть включен',
-    ).toBe(true);
+    ).toBeTruthy();
 
     expect(
       store.isError,
       'при успешном запроса, флаг ошибки должен быть выключен',
-    ).toBe(false);
+    ).toBeFalsy();
 
     // второй запрос зафейлится
     await store.async().catch((e) => e);
@@ -91,12 +95,12 @@ describe('Query', () => {
     expect(
       store.isSuccess,
       'при фейле запроса, флаг успешности должен переключится в false',
-    ).toBe(false);
+    ).toBeFalsy();
 
     expect(
       store.isError,
       'при фейле запроса, флаг ошибки должен переключться в true',
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
   it('sync:onError: Вызывается обработчик ошибки', async () => {
@@ -107,8 +111,8 @@ describe('Query', () => {
 
     store.sync({ onError });
     await when(() => !store.isLoading);
-    expect(store.data).toBe(undefined);
-    expect(store.isError).toBe(true);
+    expect(store.data).toBeUndefined();
+    expect(store.isError).toBeTruthy();
     await when(() => store.error !== undefined);
     expect(store.error).toBe('foo');
     expect(onError).toBeCalledWith('foo');
@@ -134,10 +138,10 @@ describe('Query', () => {
       dataStorage: getDataStorage(),
     });
 
-    expect(store.data, 'эмулируем обращение к data').toBe(undefined);
-    expect(store.isLoading, 'проверяем, что загрузка началась').toBe(true);
+    expect(store.data, 'эмулируем обращение к data').toBeUndefined();
+    expect(store.isLoading, 'проверяем, что загрузка началась').toBeTruthy();
     await when(() => !store.isLoading);
-    expect(store.data).toStrictEqual('foo');
+    expect(store.data).toBe('foo');
   });
 
   it('invalidate:data:fetchPolicy=cache-first: После инвалидации считывание data приводит к перезапросу данных', async () => {
@@ -154,14 +158,14 @@ describe('Query', () => {
     expect(
       store.isLoading,
       'ожидаем, что загрузка не началась сама по себе',
-    ).toBe(false);
+    ).toBeFalsy();
 
-    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    expect(store.data, 'эмулируем считывание данных').toBeUndefined();
 
     expect(
       store.isLoading,
       'ожидаем, что после считывания данных загрузка началась',
-    ).toBe(true);
+    ).toBeTruthy();
 
     await when(() => !store.isLoading);
 
@@ -172,9 +176,10 @@ describe('Query', () => {
     expect(store.data, 'эмулируем считывание данных').toBe(firstValue);
     await when(() => !store.isLoading);
 
-    expect(store.data !== firstValue, 'ожидаем, что число изменилось').toBe(
-      true,
-    );
+    expect(
+      store.data !== firstValue,
+      'ожидаем, что число изменилось',
+    ).toBeTruthy();
   });
 
   it('invalidate:sync:fetchPolicy=cache-first: после инвалидации запуск sync приводит к перезапросу', async () => {
@@ -191,21 +196,21 @@ describe('Query', () => {
     expect(
       store.isLoading,
       'ожидаем что загрузка не началась, потому что инвалидация еще не была вызвана',
-    ).toBe(false);
+    ).toBeFalsy();
 
     store.invalidate();
 
     expect(
       store.isLoading,
       'ожидаем, что загрузка не началась сама по себе',
-    ).toBe(false);
+    ).toBeFalsy();
 
     store.sync();
 
     expect(
       store.isLoading,
       'ожидаем, что после последовательного вызова инвалидации и sync загрузка все таки началась',
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
   it('invalidate:async:fetchPolicy=cache-first: После инвалидации вызов async приводит к перезапросу данных', async () => {
@@ -221,21 +226,21 @@ describe('Query', () => {
     expect(
       store.isLoading,
       'ожидаем что загрузка не началась, потому что инвалидация еще не была вызвана',
-    ).toBe(false);
+    ).toBeFalsy();
 
     store.invalidate();
 
     expect(
       store.isLoading,
       'ожидаем, что загрузка не началась сама по себе',
-    ).toBe(false);
+    ).toBeFalsy();
 
     store.async();
 
     expect(
       store.isLoading,
       'ожидаем, что после последовательного вызова инвалидации и async загрузка все таки началась',
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
   it('enabledAutoFetch:true:request:fail не происходит повторных запросов', async () => {
@@ -252,10 +257,10 @@ describe('Query', () => {
       },
     );
 
-    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    expect(store.data, 'эмулируем считывание данных').toBeUndefined();
     await when(() => !store.isLoading);
     expect(insideExecutor, 'executor вызван в первый раз').toBeCalled();
-    expect(store.data, 'эмулируем считывание данных').toBe(undefined);
+    expect(store.data, 'эмулируем считывание данных').toBeUndefined();
     await when(() => !store.isLoading);
     expect(insideExecutor, 'executor больше не вызывается').toBeCalledTimes(1);
   });
@@ -400,7 +405,7 @@ describe('Query', () => {
     );
 
     store.forceUpdate('foo');
-    expect(store.isSuccess).toBe(true);
-    expect(store.isError).toBe(false);
+    expect(store.isSuccess).toBeTruthy();
+    expect(store.isError).toBeFalsy();
   });
 });

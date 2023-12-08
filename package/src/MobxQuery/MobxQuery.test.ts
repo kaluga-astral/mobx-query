@@ -1,3 +1,7 @@
+// TODO: отрефакторить тест-кейсы в соответствии с Unit Testing Guide: https://track.astral.ru/soft/browse/UIKIT-1081
+/* eslint-disable vitest/valid-expect */
+/* eslint-disable vitest/max-expects */
+
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
@@ -23,11 +27,12 @@ describe('MobxQuery', () => {
       () => Promise.resolve([]),
     );
 
-    expect(queryA === queryB, 'при разных ключах, квери разные').toBe(false);
+    expect(queryA === queryB, 'при разных ключах, квери разные').toBeFalsy();
 
-    expect(queryA === queryC, 'при одинаковом ключе, квери тот же самый').toBe(
-      true,
-    );
+    expect(
+      queryA === queryC,
+      'при одинаковом ключе, квери тот же самый',
+    ).toBeTruthy();
   });
 
   it('Сторы с разными fetchPolicy и с одинаковым ключом отличаются', async () => {
@@ -49,12 +54,12 @@ describe('MobxQuery', () => {
     expect(
       queryA === queryB,
       'проверяем что инстантс квери без политики, это тот же инстанс с "cache-first"',
-    ).toBe(true);
+    ).toBeTruthy();
 
     expect(
       queryB === queryC,
       'при разных политиках, инстансы сторов должны быть разные',
-    ).toBe(false);
+    ).toBeFalsy();
   });
 
   it('network-only:одинаковые ключи: сторы созданные единомоментно одинаковы', () => {
@@ -71,7 +76,7 @@ describe('MobxQuery', () => {
       { fetchPolicy: 'network-only' },
     );
 
-    expect(queryA === queryB).toBe(true);
+    expect(queryA === queryB).toBeTruthy();
   });
 
   it('network-only:одинаковые ключи: сторы созданные c паузой разные', async () => {
@@ -91,7 +96,7 @@ describe('MobxQuery', () => {
       { fetchPolicy: 'network-only' },
     );
 
-    expect(queryA === queryB).toBe(false);
+    expect(queryA === queryB).toBeFalsy();
   });
 
   it('Инвалидация с простыми ключами', async () => {
@@ -153,17 +158,17 @@ describe('MobxQuery', () => {
     expect(
       queryAsc.isLoading,
       'queryAsc проверяем что загрузка началась только в сторе пользователя',
-    ).toBe(false);
+    ).toBeFalsy();
 
     expect(
       queryDesc.isLoading,
       'queryDesc проверяем что загрузка началась только в сторе пользователя',
-    ).toBe(false);
+    ).toBeFalsy();
 
     expect(
       queryUser.isLoading,
       'queryUser проверяем что загрузка началась только в сторе пользователя',
-    ).toBe(true);
+    ).toBeTruthy();
 
     await when(() => checkLoading(queries));
     // проверяем инвалидцию на другие 2 стора
@@ -187,17 +192,17 @@ describe('MobxQuery', () => {
     expect(
       queryAsc.isLoading,
       'queryAsc проверяем что загрузка в двух с ключом foo',
-    ).toBe(true);
+    ).toBeTruthy();
 
     expect(
       queryDesc.isLoading,
       'queryDesc проверяем что загрузка в двух с ключом foo',
-    ).toBe(true);
+    ).toBeTruthy();
 
     expect(
       queryUser.isLoading,
       'queryUser проверяем что загрузка в двух с ключом foo',
-    ).toBe(false);
+    ).toBeFalsy();
 
     await when(() => checkLoading(queries));
     // проверяем инвалидцию по ключу второго уровня
@@ -221,17 +226,17 @@ describe('MobxQuery', () => {
     expect(
       queryAsc.isLoading,
       'queryAsc ожидаем что загрузка началась только в сторе с direction: "asc"',
-    ).toBe(true);
+    ).toBeTruthy();
 
     expect(
       queryDesc.isLoading,
       'queryDesc ожидаем что загрузка началась только в сторе с direction: "asc"',
-    ).toBe(false);
+    ).toBeFalsy();
 
     expect(
       queryUser.isLoading,
       'queryUser ожидаем что загрузка началась только в сторе с direction: "asc"',
-    ).toBe(false);
+    ).toBeFalsy();
 
     await when(() => checkLoading(queries));
     // проверяем инвалидацию для не активного стора
@@ -240,14 +245,14 @@ describe('MobxQuery', () => {
     expect(
       queryUser.isLoading,
       'пока не дернули data, загрузка не должна начинаться',
-    ).toBe(false);
+    ).toBeFalsy();
 
     expect(
       queryUser.data,
       'эмулируем чтение data, чтобы тригернуть загрузку',
     ).toStrictEqual({ name: 'Ваня' });
 
-    expect(queryUser.isLoading, 'проверяем что загрузка началась').toBe(true);
+    expect(queryUser.isLoading, 'проверяем что загрузка началась').toBeTruthy();
   });
 
   it('Инвалидация со сложным ключом', async () => {
@@ -264,7 +269,7 @@ describe('MobxQuery', () => {
     expect(
       query.isLoading,
       'т.к. ключ не верный, ожидаем что загрузка не началась',
-    ).toBe(false);
+    ).toBeFalsy();
 
     mobxQuery.invalidate([['foo', 'bar']]);
 
@@ -272,7 +277,7 @@ describe('MobxQuery', () => {
       'data',
     );
 
-    expect(query.isLoading, 'ожидаем что загрузка началась').toBe(true);
+    expect(query.isLoading, 'ожидаем что загрузка началась').toBeTruthy();
   });
 
   it('invalidateQueries вызывает инвалидацию сразу всех квери', async () => {
