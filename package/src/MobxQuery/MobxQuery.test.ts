@@ -1,7 +1,3 @@
-// TODO: отрефакторить тест-кейсы в соответствии с Unit Testing Guide: https://track.astral.ru/soft/browse/UIKIT-1081
-/* eslint-disable vitest/valid-expect */
-/* eslint-disable vitest/max-expects */
-
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
@@ -13,271 +9,206 @@ const checkLoading = (items: { isLoading: boolean }[]) =>
 describe('MobxQuery', () => {
   vi.useFakeTimers();
 
-  it('Сторы с разными ключами отличаются, с одинаковыми совпадают', async () => {
-    const mobxQuery = new MobxQuery();
-    const queryA = mobxQuery.createInfiniteQuery(
-      [['foo', 'bar'], { foo: 'bar' }],
-      () => Promise.resolve([]),
-    );
-    const queryB = mobxQuery.createInfiniteQuery(['bar'], () =>
-      Promise.resolve([]),
-    );
-    const queryC = mobxQuery.createInfiniteQuery(
-      [['foo', 'bar'], { foo: 'bar' }],
-      () => Promise.resolve([]),
-    );
+  describe('Логика создания квери по ключам', () => {
+    const createMobx = () => {
+      const mobxQuery = new MobxQuery();
+      const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
+        Promise.resolve([]),
+      );
 
-    expect(queryA === queryB, 'при разных ключах, квери разные').toBeFalsy();
+      return { mobxQuery, queryA };
+    };
 
-    expect(
-      queryA === queryC,
-      'при одинаковом ключе, квери тот же самый',
-    ).toBeTruthy();
+    it('при разных ключах, квери разные', () => {
+      const { mobxQuery, queryA } = createMobx();
+      const query = mobxQuery.createInfiniteQuery(
+        [['foo', 'bar'], { foo: 'bar' }],
+        () => Promise.resolve([]),
+      );
+
+      expect(queryA === query).toBeFalsy();
+    });
+
+    it('при одинаковом ключе, квери тот же самый', () => {
+      const { mobxQuery, queryA } = createMobx();
+      const query = mobxQuery.createInfiniteQuery(['foo'], () =>
+        Promise.resolve([]),
+      );
+
+      expect(queryA === query).toBeTruthy();
+    });
+
+    it('квери без политики, это тот же инстанс с "cache-first"', () => {
+      const { mobxQuery, queryA } = createMobx();
+      const query = mobxQuery.createInfiniteQuery(
+        ['foo'],
+        () => Promise.resolve([]),
+        { fetchPolicy: 'cache-first' },
+      );
+
+      expect(queryA === query).toBeTruthy();
+    });
+
+    it('при разных политиках, квери разные', () => {
+      const { mobxQuery } = createMobx();
+      const queryB = mobxQuery.createInfiniteQuery(
+        ['foo'],
+        () => Promise.resolve([]),
+        { fetchPolicy: 'cache-first' },
+      );
+      const queryC = mobxQuery.createInfiniteQuery(
+        ['foo'],
+        () => Promise.resolve([]),
+        { fetchPolicy: 'network-only' },
+      );
+
+      expect(queryB === queryC).toBeFalsy();
+    });
   });
 
-  it('Сторы с разными fetchPolicy и с одинаковым ключом отличаются', async () => {
-    const mobxQuery = new MobxQuery();
-    const queryA = mobxQuery.createInfiniteQuery(['foo'], () =>
-      Promise.resolve([]),
-    );
-    const queryB = mobxQuery.createInfiniteQuery(
-      ['foo'],
-      () => Promise.resolve([]),
-      { fetchPolicy: 'cache-first' },
-    );
-    const queryC = mobxQuery.createInfiniteQuery(
-      ['foo'],
-      () => Promise.resolve([]),
-      { fetchPolicy: 'network-only' },
-    );
+  describe('создание network-only сторов', () => {
+    const createMobx = () => ({ mobxQuery: new MobxQuery() });
 
-    expect(
-      queryA === queryB,
-      'проверяем что инстантс квери без политики, это тот же инстанс с "cache-first"',
-    ).toBeTruthy();
+    it('сторы созданные единомоментно одинаковы', () => {
+      const { mobxQuery } = createMobx();
 
-    expect(
-      queryB === queryC,
-      'при разных политиках, инстансы сторов должны быть разные',
-    ).toBeFalsy();
+      const queryA = mobxQuery.createInfiniteQuery(
+        ['foo'],
+        () => Promise.resolve([]),
+        { fetchPolicy: 'network-only' },
+      );
+
+      const queryB = mobxQuery.createInfiniteQuery(
+        ['foo'],
+        () => Promise.resolve([]),
+        { fetchPolicy: 'network-only' },
+      );
+
+      expect(queryA === queryB).toBeTruthy();
+    });
+
+    it('сторы созданные c паузой разные', async () => {
+      const { mobxQuery } = createMobx();
+      const queryA = mobxQuery.createInfiniteQuery(
+        ['foo'],
+        () => Promise.resolve([]),
+        { fetchPolicy: 'network-only' },
+      );
+
+      // эмулируем завершение таймера на удаление квери
+      await vi.advanceTimersToNextTimerAsync();
+
+      const queryB = mobxQuery.createInfiniteQuery(
+        ['foo'],
+        () => Promise.resolve([]),
+        { fetchPolicy: 'network-only' },
+      );
+
+      expect(queryA === queryB).toBeFalsy();
+    });
   });
 
-  it('network-only:одинаковые ключи: сторы созданные единомоментно одинаковы', () => {
-    const mobxQuery = new MobxQuery();
-    const queryA = mobxQuery.createInfiniteQuery(
-      ['foo'],
-      () => Promise.resolve([]),
-      { fetchPolicy: 'network-only' },
-    );
+  describe('Инвалидации с простыми ключами', async () => {
+    const createQueries = async () => {
+      const mobxQuery = new MobxQuery();
+      const queryAsc = mobxQuery.createInfiniteQuery(
+        ['foo', { direction: 'asc' }],
+        () => Promise.resolve(['foo', 'data']),
+      );
+      const queryDesc = mobxQuery.createInfiniteQuery(
+        ['foo', { direction: 'desc' }],
+        () => Promise.resolve(['data', 'foo']),
+      );
 
-    const queryB = mobxQuery.createInfiniteQuery(
-      ['foo'],
-      () => Promise.resolve([]),
-      { fetchPolicy: 'network-only' },
-    );
+      const queryUser = mobxQuery.createQuery(['user'], () =>
+        Promise.resolve({ name: 'Ваня' }),
+      );
 
-    expect(queryA === queryB).toBeTruthy();
+      const queries = [queryAsc, queryDesc, queryUser];
+
+      // запускаем запрос данных везде
+      queryAsc.sync();
+      queryDesc.sync();
+      queryUser.sync();
+      await when(() => checkLoading(queries));
+
+      return { queryAsc, queryDesc, queryUser, mobxQuery };
+    };
+
+    it('запрос инвалидации запускается для простого ключа', async () => {
+      const { queryAsc, queryDesc, queryUser, mobxQuery } =
+        await createQueries();
+
+      mobxQuery.invalidate(['user']);
+      // дергаем дату у всех сторов, чтобы тригернуть загрузку
+      JSON.stringify([queryAsc.data, queryDesc.data, queryUser.data]);
+
+      // проверяем что загрузка началась только в сторе пользователя
+      expect([
+        queryAsc.isLoading,
+        queryDesc.isLoading,
+        queryUser.isLoading,
+      ]).toStrictEqual([false, false, true]);
+    });
+
+    it('запрос инвалидации запускается для сложного ключа', async () => {
+      const { queryAsc, queryDesc, queryUser, mobxQuery } =
+        await createQueries();
+
+      mobxQuery.invalidate([{ direction: 'asc' }]);
+      // дергаем дату у всех сторов, чтобы тригернуть загрузку
+      JSON.stringify([queryAsc.data, queryDesc.data, queryUser.data]);
+
+      // ожидаем что загрузка началась только в сторе с direction: "asc"
+      expect([
+        queryAsc.isLoading,
+        queryDesc.isLoading,
+        queryUser.isLoading,
+      ]).toStrictEqual([true, false, false]);
+    });
+
+    it('запрос инвалидации для неактивного стора не запускается, пока мы не обратимся к данным', async () => {
+      const { queryUser, mobxQuery } = await createQueries();
+
+      mobxQuery.invalidate(['user']);
+      expect(queryUser.isLoading).toBeFalsy();
+      // дергаем дату, чтобы тригернуть загрузку
+      JSON.stringify(queryUser.data);
+      //  проверяем что загрузка началась,
+      expect(queryUser.isLoading).toBeTruthy();
+    });
   });
 
-  it('network-only:одинаковые ключи: сторы созданные c паузой разные', async () => {
-    const mobxQuery = new MobxQuery();
-    const queryA = mobxQuery.createInfiniteQuery(
-      ['foo'],
-      () => Promise.resolve([]),
-      { fetchPolicy: 'network-only' },
-    );
+  describe('Инвалидация для сложносоставного ключа', async () => {
+    const createQuery = async () => {
+      const mobxQuery = new MobxQuery();
+      const query = mobxQuery.createQuery([['foo', 'bar']], () =>
+        Promise.resolve('data'),
+      );
 
-    // эмулируем завершение таймера на удаление квери
-    await vi.advanceTimersToNextTimerAsync();
+      query.sync();
+      await when(() => !query.isLoading);
 
-    const queryB = mobxQuery.createInfiniteQuery(
-      ['foo'],
-      () => Promise.resolve([]),
-      { fetchPolicy: 'network-only' },
-    );
+      return { query, mobxQuery };
+    };
 
-    expect(queryA === queryB).toBeFalsy();
-  });
+    it('ключ не верный, запрос не начался', async () => {
+      const { query, mobxQuery } = await createQuery();
 
-  it('Инвалидация с простыми ключами', async () => {
-    const mobxQuery = new MobxQuery();
-    const queryAsc = mobxQuery.createInfiniteQuery(
-      ['foo', { direction: 'asc' }],
-      () => Promise.resolve(['foo', 'data']),
-    );
-    const queryDesc = mobxQuery.createInfiniteQuery(
-      ['foo', { direction: 'desc' }],
-      () => Promise.resolve(['data', 'foo']),
-    );
+      mobxQuery.invalidate(['foo']);
+      // эмулируем чтение data
+      JSON.stringify(query.data);
+      expect(query.isLoading).toBeFalsy();
+    });
 
-    const queryUser = mobxQuery.createQuery(['user'], () =>
-      Promise.resolve({ name: 'Ваня' }),
-    );
+    it('ключ верный, запрос начался', async () => {
+      const { query, mobxQuery } = await createQuery();
 
-    const queries = [queryAsc, queryDesc, queryUser];
-
-    // запускаем запрос данных везде
-    queryAsc.sync();
-    queryDesc.sync();
-    queryUser.sync();
-    await when(() => checkLoading(queries));
-
-    expect(
-      queryAsc.data,
-      'queryAsc проверяем что данные появились',
-    ).toStrictEqual(['foo', 'data']);
-
-    expect(
-      queryDesc.data,
-      'queryDesc проверяем что данные появились',
-    ).toStrictEqual(['data', 'foo']);
-
-    expect(
-      queryUser.data,
-      'queryUser проверяем что данные появились',
-    ).toStrictEqual({ name: 'Ваня' });
-
-    // запускаем инвалидацию по одной вариации ключа
-    mobxQuery.invalidate(['user']);
-
-    expect(
-      queryAsc.data,
-      'queryAsc дергаем дату у всех сторов, чтобы тригернуть загрузку',
-    ).toStrictEqual(['foo', 'data']);
-
-    expect(
-      queryDesc.data,
-      'queryDesc дергаем дату у всех сторов, чтобы тригернуть загрузку',
-    ).toStrictEqual(['data', 'foo']);
-
-    expect(
-      queryUser.data,
-      'queryUser дергаем дату у всех сторов, чтобы тригернуть загрузку',
-    ).toStrictEqual({ name: 'Ваня' });
-
-    expect(
-      queryAsc.isLoading,
-      'queryAsc проверяем что загрузка началась только в сторе пользователя',
-    ).toBeFalsy();
-
-    expect(
-      queryDesc.isLoading,
-      'queryDesc проверяем что загрузка началась только в сторе пользователя',
-    ).toBeFalsy();
-
-    expect(
-      queryUser.isLoading,
-      'queryUser проверяем что загрузка началась только в сторе пользователя',
-    ).toBeTruthy();
-
-    await when(() => checkLoading(queries));
-    // проверяем инвалидцию на другие 2 стора
-    mobxQuery.invalidate(['foo']);
-
-    expect(
-      queryAsc.data,
-      'queryAsc дергаем дату, чтобы тригернуть загрузку',
-    ).toStrictEqual(['foo', 'data']);
-
-    expect(
-      queryDesc.data,
-      'queryDesc дергаем дату, чтобы тригернуть загрузку',
-    ).toStrictEqual(['data', 'foo']);
-
-    expect(
-      queryUser.data,
-      'queryUser дергаем дату, чтобы тригернуть загрузку',
-    ).toStrictEqual({ name: 'Ваня' });
-
-    expect(
-      queryAsc.isLoading,
-      'queryAsc проверяем что загрузка в двух с ключом foo',
-    ).toBeTruthy();
-
-    expect(
-      queryDesc.isLoading,
-      'queryDesc проверяем что загрузка в двух с ключом foo',
-    ).toBeTruthy();
-
-    expect(
-      queryUser.isLoading,
-      'queryUser проверяем что загрузка в двух с ключом foo',
-    ).toBeFalsy();
-
-    await when(() => checkLoading(queries));
-    // проверяем инвалидцию по ключу второго уровня
-    mobxQuery.invalidate([{ direction: 'asc' }]);
-
-    expect(
-      queryAsc.data,
-      'queryAsc дергаем data, чтобы тригернуть загрузку',
-    ).toStrictEqual(['foo', 'data']);
-
-    expect(
-      queryDesc.data,
-      'queryDesc дергаем data, чтобы тригернуть загрузку',
-    ).toStrictEqual(['data', 'foo']);
-
-    expect(
-      queryUser.data,
-      'queryUser дергаем data, чтобы тригернуть загрузку',
-    ).toStrictEqual({ name: 'Ваня' });
-
-    expect(
-      queryAsc.isLoading,
-      'queryAsc ожидаем что загрузка началась только в сторе с direction: "asc"',
-    ).toBeTruthy();
-
-    expect(
-      queryDesc.isLoading,
-      'queryDesc ожидаем что загрузка началась только в сторе с direction: "asc"',
-    ).toBeFalsy();
-
-    expect(
-      queryUser.isLoading,
-      'queryUser ожидаем что загрузка началась только в сторе с direction: "asc"',
-    ).toBeFalsy();
-
-    await when(() => checkLoading(queries));
-    // проверяем инвалидацию для не активного стора
-    mobxQuery.invalidate(['user']);
-
-    expect(
-      queryUser.isLoading,
-      'пока не дернули data, загрузка не должна начинаться',
-    ).toBeFalsy();
-
-    expect(
-      queryUser.data,
-      'эмулируем чтение data, чтобы тригернуть загрузку',
-    ).toStrictEqual({ name: 'Ваня' });
-
-    expect(queryUser.isLoading, 'проверяем что загрузка началась').toBeTruthy();
-  });
-
-  it('Инвалидация со сложным ключом', async () => {
-    const mobxQuery = new MobxQuery();
-    const query = mobxQuery.createQuery([['foo', 'bar']], () =>
-      Promise.resolve('data'),
-    );
-
-    query.sync();
-    await when(() => !query.isLoading);
-    mobxQuery.invalidate(['foo']);
-    expect(query.data, 'эмулируем чтение data').toBe('data');
-
-    expect(
-      query.isLoading,
-      'т.к. ключ не верный, ожидаем что загрузка не началась',
-    ).toBeFalsy();
-
-    mobxQuery.invalidate([['foo', 'bar']]);
-
-    expect(query.data, 'эмулируем чтение data, чтобы тригернуть загрузку').toBe(
-      'data',
-    );
-
-    expect(query.isLoading, 'ожидаем что загрузка началась').toBeTruthy();
+      mobxQuery.invalidate([['foo', 'bar']]);
+      // эмулируем чтение data, чтобы тригернуть загрузку
+      JSON.stringify(query.data);
+      expect(query.isLoading).toBeTruthy();
+    });
   });
 
   it('invalidateQueries вызывает инвалидацию сразу всех квери', async () => {
@@ -303,10 +234,6 @@ describe('MobxQuery', () => {
     // снова запускаем загрузку в обоих квери
     await queryFoo.async();
     await queryBar.async();
-
-    expect(
-      onLoad,
-      'ожидается, что после вызова массовой валидации, сайд эффект загрузки вызывался в executor каждого квери',
-    ).toBeCalledTimes(4);
+    expect(onLoad).toBeCalledTimes(4);
   });
 });
