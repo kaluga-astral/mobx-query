@@ -19,7 +19,7 @@ describe('MobxQuery', () => {
       return { mobxQuery, queryA };
     };
 
-    it('при разных ключах, квери разные', () => {
+    it('Квери создаются разные при разных ключах', () => {
       const { mobxQuery, queryA } = createMobx();
       const query = mobxQuery.createInfiniteQuery(
         [['foo', 'bar'], { foo: 'bar' }],
@@ -29,7 +29,7 @@ describe('MobxQuery', () => {
       expect(queryA === query).toBeFalsy();
     });
 
-    it('при одинаковом ключе, квери тот же самый', () => {
+    it('Квери создаются те же самые, при одинаковом ключе', () => {
       const { mobxQuery, queryA } = createMobx();
       const query = mobxQuery.createInfiniteQuery(['foo'], () =>
         Promise.resolve([]),
@@ -38,7 +38,7 @@ describe('MobxQuery', () => {
       expect(queryA === query).toBeTruthy();
     });
 
-    it('квери без политики, это тот же инстанс с "cache-first"', () => {
+    it('Квери созданный с "cache-first" то же самый, что и без политики', () => {
       const { mobxQuery, queryA } = createMobx();
       const query = mobxQuery.createInfiniteQuery(
         ['foo'],
@@ -49,7 +49,7 @@ describe('MobxQuery', () => {
       expect(queryA === query).toBeTruthy();
     });
 
-    it('при разных политиках, квери разные', () => {
+    it('Квери создаются разные, при разных политиках и одинаковых ключах', () => {
       const { mobxQuery } = createMobx();
       const queryB = mobxQuery.createInfiniteQuery(
         ['foo'],
@@ -66,10 +66,10 @@ describe('MobxQuery', () => {
     });
   });
 
-  describe('создание network-only сторов', () => {
+  describe('Cоздание network-only сторов', () => {
     const createMobx = () => ({ mobxQuery: new MobxQuery() });
 
-    it('сторы созданные единомоментно одинаковы', () => {
+    it('Квери создаются те же самые, если создаются единомоментно', () => {
       const { mobxQuery } = createMobx();
 
       const queryA = mobxQuery.createInfiniteQuery(
@@ -87,7 +87,7 @@ describe('MobxQuery', () => {
       expect(queryA === queryB).toBeTruthy();
     });
 
-    it('сторы созданные c паузой разные', async () => {
+    it('Квери создаются разные, если создаются с паузой', async () => {
       const { mobxQuery } = createMobx();
       const queryA = mobxQuery.createInfiniteQuery(
         ['foo'],
@@ -135,7 +135,7 @@ describe('MobxQuery', () => {
       return { queryAsc, queryDesc, queryUser, mobxQuery };
     };
 
-    it('запрос инвалидации запускается для простого ключа', async () => {
+    it('Запрос инвалидации запускается для простого ключа', async () => {
       const { queryAsc, queryDesc, queryUser, mobxQuery } =
         await createQueries();
 
@@ -151,7 +151,7 @@ describe('MobxQuery', () => {
       ]).toStrictEqual([false, false, true]);
     });
 
-    it('запрос инвалидации запускается для сложного ключа', async () => {
+    it('Запрос инвалидации запускается для сложного ключа', async () => {
       const { queryAsc, queryDesc, queryUser, mobxQuery } =
         await createQueries();
 
@@ -167,7 +167,7 @@ describe('MobxQuery', () => {
       ]).toStrictEqual([true, false, false]);
     });
 
-    it('запрос инвалидации для неактивного стора не запускается, пока мы не обратимся к данным', async () => {
+    it('Запрос инвалидации для неактивного стора не запускается, пока мы не обратимся к данным', async () => {
       const { queryUser, mobxQuery } = await createQueries();
 
       mobxQuery.invalidate(['user']);
@@ -192,7 +192,7 @@ describe('MobxQuery', () => {
       return { query, mobxQuery };
     };
 
-    it('ключ не верный, запрос не начался', async () => {
+    it('Запрос не начался, если ключ не верный', async () => {
       const { query, mobxQuery } = await createQuery();
 
       mobxQuery.invalidate(['foo']);
@@ -201,7 +201,7 @@ describe('MobxQuery', () => {
       expect(query.isLoading).toBeFalsy();
     });
 
-    it('ключ верный, запрос начался', async () => {
+    it('Запрос начался, если ключ верный,', async () => {
       const { query, mobxQuery } = await createQuery();
 
       mobxQuery.invalidate([['foo', 'bar']]);

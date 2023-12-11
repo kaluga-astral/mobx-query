@@ -3,29 +3,31 @@ import { describe, expect, it } from 'vitest';
 import { DataStorage, DataStorageFactory } from './DataStorage';
 
 describe('DataStorage', () => {
-  describe('исходное состояние', () => {
-    const createStorage = () => new DataStorage();
+  const createStorage = () => new DataStorage();
 
-    it('данных изначально нет', () => {
+  describe('При исходном состоянии', () => {
+    it('Данных изначально нет', () => {
       const storage = createStorage();
 
       expect(storage.data).toBeUndefined();
     });
 
-    it('флаг данных выключен', () => {
+    it('Флаг данных выключен', () => {
       const storage = createStorage();
 
       expect(storage.hasData).toBeFalsy();
     });
+  });
 
-    it('при установке данных флаг данных включен', () => {
+  describe('При установке данных', () => {
+    it('Флаг наличия данных включен', () => {
       const storage = createStorage();
 
       storage.setData(['foo']);
       expect(storage.hasData).toBeTruthy();
     });
 
-    it('при установке данных, данные появились', () => {
+    it('Данные появились', () => {
       const storage = createStorage();
 
       storage.setData(['foo']);

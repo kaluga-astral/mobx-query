@@ -8,7 +8,7 @@ import { InfiniteQuery } from './InfiniteQuery';
 describe('InfiniteQuery', () => {
   const getDataStorage = <T = unknown[]>() => new DataStorage<T>();
 
-  describe('Начальное состояние', () => {
+  describe('При начальном состоянии', () => {
     const query = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: getDataStorage(),
     });
@@ -34,13 +34,13 @@ describe('InfiniteQuery', () => {
     });
   });
 
-  describe('успешная загрузка', () => {
+  describe('При успешной загрузке', () => {
     const createQuery = () =>
       new InfiniteQuery(() => Promise.resolve(['foo']), {
         dataStorage: getDataStorage(),
       });
 
-    it('данные ответа попадают в data', async () => {
+    it('Данные ответа попадают в data', async () => {
       const query = createQuery();
 
       query.sync();
@@ -48,7 +48,7 @@ describe('InfiniteQuery', () => {
       expect(query.data).toStrictEqual(['foo']);
     });
 
-    it('вызывается переданный onSuccess', async () => {
+    it('onSuccess вызывается', async () => {
       const onSuccess = vi.fn();
       const query = createQuery();
 
@@ -57,7 +57,7 @@ describe('InfiniteQuery', () => {
       expect(onSuccess).toBeCalledWith(['foo']);
     });
 
-    it('При успешном запросе устанавливаются соответствующие флаги', async () => {
+    it('Флаги состояний устанавливаются в соответствующее состояние', async () => {
       const query = createQuery();
 
       await query.async();
@@ -66,8 +66,8 @@ describe('InfiniteQuery', () => {
     });
   });
 
-  describe('обработка ошибок', () => {
-    it('устанавливается флаг ошибки', async () => {
+  describe('При провальном запросе', () => {
+    it('Флаг ошибки устанавливается', async () => {
       const query = new InfiniteQuery(() => Promise.reject('error'), {
         dataStorage: getDataStorage(),
       });
@@ -78,7 +78,7 @@ describe('InfiniteQuery', () => {
       expect(query.isError).toBeTruthy();
     });
 
-    it('значение ошибки попадает в поле error', async () => {
+    it('Значение ошибки попадает в поле error', async () => {
       const query = new InfiniteQuery(() => Promise.reject('error'), {
         dataStorage: getDataStorage(),
       });
@@ -89,7 +89,7 @@ describe('InfiniteQuery', () => {
       expect(query.error).toBe('error');
     });
 
-    it('Вызывается обработчик ошибки', async () => {
+    it('Обработчик ошибки вызывается', async () => {
       const onError = vi.fn();
       const query = new InfiniteQuery(() => Promise.reject('error'), {
         dataStorage: getDataStorage(),
@@ -101,7 +101,7 @@ describe('InfiniteQuery', () => {
       expect(onError).toBeCalledWith('error');
     });
 
-    it('вызывается обработчик ошибки по умолчанию', async () => {
+    it('Обработчик ошибки по умолчанию вызывается', async () => {
       const onDefaultError = vi.fn();
       const query = new InfiniteQuery(() => Promise.reject('error'), {
         dataStorage: getDataStorage(),
@@ -114,7 +114,7 @@ describe('InfiniteQuery', () => {
       expect(onDefaultError).toBeCalledWith('error');
     });
 
-    it('обработчик ошибки по умолчанию не вызывается при использовании async', async () => {
+    it('Обработчик ошибки по умолчанию не вызывается при использовании async', async () => {
       const onDefaultError = vi.fn();
       const query = new InfiniteQuery(() => Promise.reject('foo'), {
         onError: onDefaultError,
@@ -128,7 +128,7 @@ describe('InfiniteQuery', () => {
       expect(onDefaultError).not.toBeCalled();
     });
 
-    it('обработчик по умолчанию не вызывается, если в sync передан кастомный', async () => {
+    it('Обработчик по умолчанию не вызывается, если в sync передан кастомный', async () => {
       const onError = vi.fn();
       const onDefaultError = vi.fn();
       const query = new InfiniteQuery(() => Promise.reject('error'), {
@@ -143,8 +143,8 @@ describe('InfiniteQuery', () => {
     });
   });
 
-  describe('invalidate tests', () => {
-    it('после invalidate sync запускает загрузку', async () => {
+  describe('При инвалидации', () => {
+    it('sync запускает загрузку после invalidate', async () => {
       const query = new InfiniteQuery(
         // executor эмулирует постоянно меняющиеся данные
         () => Promise.resolve([Math.random()]),
@@ -168,7 +168,7 @@ describe('InfiniteQuery', () => {
       expect(secondValue !== firstValue).toBeTruthy();
     });
 
-    it('после invalidate async запускает загрузку', async () => {
+    it('async запускает загрузку после invalidate', async () => {
       const query = new InfiniteQuery(
         // executor эмулирует постоянно меняющиеся данные
         () => Promise.resolve([Math.random()]),
@@ -189,7 +189,7 @@ describe('InfiniteQuery', () => {
       expect(secondValue !== firstValue).toBeTruthy();
     });
 
-    it('если enabledAutoFetch включен, после invalidate обращение к data запускает загрузку', async () => {
+    it('Обращение к data запускает загрузку после invalidate, если enabledAutoFetch включен', async () => {
       const query = new InfiniteQuery(
         // executor эмулирует постоянно меняющиеся данные
         () => Promise.resolve([Math.random()]),
@@ -217,8 +217,8 @@ describe('InfiniteQuery', () => {
     });
   });
 
-  describe('enabledAutoFetch tests', () => {
-    it('автоматический запрос данных при обращении к data', async () => {
+  describe('При включенном enabledAutoFetch', () => {
+    it('Автоматический запрос данных при обращении к data', async () => {
       const query = new InfiniteQuery(() => Promise.resolve(['foo']), {
         enabledAutoFetch: true,
         dataStorage: getDataStorage(),
@@ -229,7 +229,7 @@ describe('InfiniteQuery', () => {
       expect(query.isLoading).toBeTruthy();
     });
 
-    it('при фейле запроса, повторные обращения к data не происходит повторных запросов', async () => {
+    it('Повторные обращения к data не запускают повторных запросов, при фейле запроса', async () => {
       const insideExecutor = vi.fn();
       const query = new InfiniteQuery(
         () => {
@@ -253,7 +253,7 @@ describe('InfiniteQuery', () => {
     });
   });
 
-  describe('infinite tests', () => {
+  describe('При использовании infinite специфик', () => {
     const createQuery = () => {
       const insideExecutor = vi.fn();
 
@@ -279,7 +279,7 @@ describe('InfiniteQuery', () => {
       return { query, insideExecutor };
     };
 
-    it('данные конкатенируются', async () => {
+    it('Данные конкатенируются', async () => {
       const { query } = createQuery();
 
       await query.async();
@@ -299,7 +299,7 @@ describe('InfiniteQuery', () => {
       expect(insideExecutor).toHaveBeenLastCalledWith({ offset: 1, count: 1 });
     });
 
-    it('флаг достижения окончания списка актуализируется в зависимости от ответа', async () => {
+    it('Флаг достижения окончания списка актуализируется в зависимости от ответа', async () => {
       const { query } = createQuery();
 
       await query.async();
@@ -313,7 +313,7 @@ describe('InfiniteQuery', () => {
       expect(query.isEndReached).toBeTruthy();
     });
 
-    it('по достижению окончанию списка, последующие вызовы fetchMore игнорируются', async () => {
+    it('Последующие вызовы fetchMore игнорируются, при достижении окончания списка', async () => {
       const { query, insideExecutor } = createQuery();
 
       await query.async();
@@ -327,7 +327,7 @@ describe('InfiniteQuery', () => {
       expect(insideExecutor).toBeCalledTimes(3);
     });
 
-    it('по достижению окончанию списка, и последующей инвалидации, флаг окончания списка сбрасывается в соответствии с ответом от бэка', async () => {
+    it('Флаг окончания списка сбрасывается в соответствии с ответом от бэка, по достижению окончанию списка и последующей инвалидации', async () => {
       const { query } = createQuery();
 
       await query.async();
@@ -341,7 +341,7 @@ describe('InfiniteQuery', () => {
       expect(query.isEndReached).toBeFalsy();
     });
 
-    it('после вызова инвалидации, вызов sync/async приведет к вызову executor c начальными счетчиками', async () => {
+    it('Вызов sync/async приведет к вызову executor c начальными счетчиками, после вызова инвалидации', async () => {
       const { query, insideExecutor } = createQuery();
 
       await query.async();
@@ -371,7 +371,7 @@ describe('InfiniteQuery', () => {
     });
   });
 
-  describe('синхронизация данных через dataStorage', () => {
+  describe('Синхронизация данных через dataStorage', () => {
     const createQuery = () => {
       const unifiedDataStorage = getDataStorage();
 
@@ -386,14 +386,14 @@ describe('InfiniteQuery', () => {
       return { queryA, queryB };
     };
 
-    it('ожидаем что в квери B попали данные, запрошенные в сторе A', async () => {
+    it('Квери B получает данные, запрошенные в сторе A', async () => {
       const { queryA, queryB } = createQuery();
 
       await queryA.async();
       expect(queryB.data).toStrictEqual(['foo']);
     });
 
-    it('ожидаем что в квери A попали данные, запрошенные в сторе B', async () => {
+    it('Квери A получает данные, запрошенные в сторе B', async () => {
       const { queryA, queryB } = createQuery();
 
       await queryB.async();
@@ -401,7 +401,7 @@ describe('InfiniteQuery', () => {
     });
   });
 
-  describe('network-only tests', () => {
+  describe('При политике network-only', () => {
     const createQuery = () => {
       // счетчик для эмуляции меняющихся данных
       let counter = 0;
@@ -419,7 +419,7 @@ describe('InfiniteQuery', () => {
       );
     };
 
-    it('данные запрашиваются при каждом вызове async', async () => {
+    it('Данные запрашиваются при каждом вызове async', async () => {
       const query = createQuery();
 
       await query.async();
@@ -431,7 +431,7 @@ describe('InfiniteQuery', () => {
       expect(query.data).toStrictEqual([2]);
     });
 
-    it('данные запрашиваются при каждом вызове sync', async () => {
+    it('Данные запрашиваются при каждом вызове sync', async () => {
       const query = createQuery();
 
       query.sync();
@@ -447,7 +447,7 @@ describe('InfiniteQuery', () => {
     });
   });
 
-  describe('forceUpdate tests', () => {
+  describe('При использование forceUpdate', () => {
     const createQuery = () => {
       const onInsideExecutor = vi.fn();
       const query = new InfiniteQuery(
@@ -464,21 +464,21 @@ describe('InfiniteQuery', () => {
       return { query, onInsideExecutor };
     };
 
-    it('данные устанавливаются снаружи', () => {
+    it('Данные устанавливаются снаружи', () => {
       const { query } = createQuery();
 
       query.forceUpdate(['foo']);
       expect(query.data).toStrictEqual(['foo']);
     });
 
-    it('запрос не происходит', () => {
+    it('Запрос не происходит', () => {
       const { query, onInsideExecutor } = createQuery();
 
       query.forceUpdate(['foo']);
       expect(onInsideExecutor).not.toBeCalled();
     });
 
-    it('все стаусные флаги устанавливаются в success', () => {
+    it('Все статусные флаги устанавливаются в значение соответствующее успешному запросу', () => {
       const { query } = createQuery();
 
       query.forceUpdate(['foo']);

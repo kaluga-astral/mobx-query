@@ -8,20 +8,20 @@ import { Query } from './Query';
 describe('Query', () => {
   const getDataStorage = () => new DataStorage();
 
-  describe('Начальное состояние', () => {
+  describe('При начальном состоянии', () => {
     const query = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
 
-    it('флаг загрузки false', () => {
+    it('Флаг загрузки false', () => {
       expect(query.isLoading).toBeFalsy();
     });
 
-    it('флаг ошибки false', () => {
+    it('Флаг ошибки false', () => {
       expect(query.isError).toBeFalsy();
     });
 
-    it('флаг успеха false', () => {
+    it('Флаг успеха false', () => {
       expect(query.isSuccess).toBeFalsy();
     });
 
@@ -29,18 +29,18 @@ describe('Query', () => {
       expect(query.data).toBeUndefined();
     });
 
-    it('данные ошибки undefined', () => {
+    it('Данные ошибки undefined', () => {
       expect(query.error).toBeUndefined();
     });
   });
 
-  describe('успешная загрузка', () => {
+  describe('При успешной загрузке', () => {
     const createQuery = () =>
       new Query(() => Promise.resolve('foo'), {
         dataStorage: getDataStorage(),
       });
 
-    it('данные ответа попадают в data', async () => {
+    it('Данные ответа попадают в поле data', async () => {
       const query = createQuery();
 
       query.sync();
@@ -48,7 +48,7 @@ describe('Query', () => {
       expect(query.data).toBe('foo');
     });
 
-    it('вызывается переданный onSuccess', async () => {
+    it('Переданный onSuccess вызывается', async () => {
       const onSuccess = vi.fn();
       const query = createQuery();
 
@@ -57,7 +57,7 @@ describe('Query', () => {
       expect(onSuccess).toBeCalledWith('foo');
     });
 
-    it('При успешном запросе устанавливаются соответствующие флаги', async () => {
+    it('Соответствующие флаги устанавливаются', async () => {
       const query = createQuery();
 
       await query.async();
@@ -66,8 +66,8 @@ describe('Query', () => {
     });
   });
 
-  describe('обработка ошибок', () => {
-    it('При провальном запросе устанавливаются соответствующие флаги', async () => {
+  describe('При провальном запросе', () => {
+    it('Соответствующие флаги устанавливаются', async () => {
       const query = new Query(() => Promise.reject('foo'), {
         dataStorage: getDataStorage(),
       });
@@ -77,7 +77,7 @@ describe('Query', () => {
       expect(query.isError).toBeTruthy();
     });
 
-    it('Вызывается обработчик ошибки', async () => {
+    it('Обработчик ошибки вызывается', async () => {
       const onError = vi.fn();
       const query = new Query(() => Promise.reject('foo'), {
         dataStorage: getDataStorage(),
@@ -90,7 +90,7 @@ describe('Query', () => {
       expect(onError).toBeCalledWith('foo');
     });
 
-    it('вызывается обработчик ошибки по умолчанию', async () => {
+    it('Обработчик ошибки по умолчанию вызывается', async () => {
       const onDefaultError = vi.fn();
       const query = new Query(() => Promise.reject('foo'), {
         onError: onDefaultError,
@@ -104,7 +104,7 @@ describe('Query', () => {
       expect(onDefaultError).toBeCalledWith('foo');
     });
 
-    it('обработчик ошибки по умолчанию не вызывается при использовании async', async () => {
+    it('Обработчик ошибки по умолчанию не вызывается при использовании async', async () => {
       const onDefaultError = vi.fn();
       const query = new Query(() => Promise.reject('foo'), {
         onError: onDefaultError,
@@ -118,7 +118,7 @@ describe('Query', () => {
       expect(onDefaultError).not.toBeCalled();
     });
 
-    it('обработчик по умолчанию не вызывается, если в sync передан кастомный', async () => {
+    it('Обработчик по умолчанию не вызывается, если в sync передан кастомный', async () => {
       const onError = vi.fn();
       const onDefaultError = vi.fn();
       const query = new Query(() => Promise.reject('error'), {
@@ -133,8 +133,8 @@ describe('Query', () => {
     });
   });
 
-  describe('enabledAutoFetch tests', () => {
-    it('автоматический запрос данных при обращении к data', async () => {
+  describe('При использовании флага enabledAutoFetch', () => {
+    it('Автоматический запрос данных при обращении к data', async () => {
       const query = new Query(() => Promise.resolve('foo'), {
         enabledAutoFetch: true,
         dataStorage: getDataStorage(),
@@ -145,7 +145,7 @@ describe('Query', () => {
       expect(query.isLoading).toBeTruthy();
     });
 
-    it('при фейле запроса, повторные обращения к data не происходит повторных запросов', async () => {
+    it('Повторные обращения к data не приводят к повторным запросам, при фейле запроса', async () => {
       const insideExecutor = vi.fn();
       const store = new Query(
         () => {
@@ -171,8 +171,8 @@ describe('Query', () => {
     });
   });
 
-  describe('invalidate tests', () => {
-    it('После инвалидации считывание data приводит к перезапросу данных', async () => {
+  describe('При использовании invalidate', () => {
+    it('Считывание data приводит к перезапросу данных', async () => {
       const query = new Query(
         // executor эмулирует постоянно меняющиеся данные
         () => Promise.resolve(Math.random()),
@@ -199,7 +199,7 @@ describe('Query', () => {
       expect(query.data !== firstValue).toBeTruthy();
     });
 
-    it('после инвалидации запуск sync приводит к перезапросу', async () => {
+    it('Вызов sync приводит к перезапросу данных', async () => {
       const query = new Query(() => Promise.resolve('foo'), {
         dataStorage: getDataStorage(),
       });
@@ -212,7 +212,7 @@ describe('Query', () => {
       expect(query.isLoading).toBeTruthy();
     });
 
-    it('После инвалидации вызов async приводит к перезапросу данных', async () => {
+    it('Вызов async приводит к перезапросу данных', async () => {
       const query = new Query(() => Promise.resolve('foo'), {
         dataStorage: getDataStorage(),
       });
@@ -231,7 +231,7 @@ describe('Query', () => {
     });
   });
 
-  describe('синхронизация данных через dataStorage', () => {
+  describe('Синхронизация данных через dataStorage', () => {
     const createQuery = () => {
       const unifiedDataStorage = getDataStorage();
 
@@ -246,14 +246,14 @@ describe('Query', () => {
       return { queryA, queryB };
     };
 
-    it('ожидаем что в квери B попали данные, запрошенные в сторе A', async () => {
+    it('Квери B получает данные, запрошенные в сторе A', async () => {
       const { queryA, queryB } = createQuery();
 
       await queryA.async();
       expect(queryB.data).toBe('foo');
     });
 
-    it('ожидаем что в квери A попали данные, запрошенные в сторе B', async () => {
+    it('Квери A получает данные, запрошенные в сторе B', async () => {
       const { queryA, queryB } = createQuery();
 
       await queryB.async();
@@ -261,7 +261,7 @@ describe('Query', () => {
     });
   });
 
-  describe('network-only tests', () => {
+  describe('При использовании политики network-only', () => {
     const createQuery = () => {
       // счетчик для эмуляции меняющихся данных
       let counter = 0;
@@ -279,7 +279,7 @@ describe('Query', () => {
       );
     };
 
-    it('данные запрашиваются при каждом вызове async', async () => {
+    it('Данные запрашиваются при каждом вызове async', async () => {
       const query = createQuery();
 
       await query.async();
@@ -291,7 +291,7 @@ describe('Query', () => {
       expect(query.data).toBe(2);
     });
 
-    it('данные запрашиваются при каждом вызове sync', async () => {
+    it('Данные запрашиваются при каждом вызове sync', async () => {
       const query = createQuery();
 
       query.sync();
@@ -306,7 +306,7 @@ describe('Query', () => {
       expect(query.data).toBe(2);
     });
 
-    it('флаги успеха и ошибки переключаются в соответствующее значение, в зависимости от ответа', async () => {
+    it('Флаги успеха и ошибки переключаются в соответствующее значение, в зависимости от ответа', async () => {
       // эмулируем меняющееся поведение запроса, четные запросы будут падать, нечетные завершаться успешно
       let counter = 0;
       const query = new Query(
@@ -334,7 +334,7 @@ describe('Query', () => {
     });
   });
 
-  describe('forceUpdate tests', () => {
+  describe('При использование forceUpdate', () => {
     const createQuery = () => {
       const onInsideExecutor = vi.fn();
       const query = new Query(
@@ -351,21 +351,21 @@ describe('Query', () => {
       return { query, onInsideExecutor };
     };
 
-    it('данные устанавливаются снаружи', () => {
+    it('Данные устанавливаются снаружи', () => {
       const { query } = createQuery();
 
       query.forceUpdate('foo');
       expect(query.data).toBe('foo');
     });
 
-    it('запрос не происходит', () => {
+    it('Запрос не происходит', () => {
       const { query, onInsideExecutor } = createQuery();
 
       query.forceUpdate('foo');
       expect(onInsideExecutor).not.toBeCalled();
     });
 
-    it('все стаусные флаги устанавливаются в success', () => {
+    it('Все статусные флаги устанавливаются в значение соответствующее успешному запросу', () => {
       const { query } = createQuery();
 
       query.forceUpdate('foo');
