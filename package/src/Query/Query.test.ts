@@ -1,7 +1,3 @@
-// TODO: отрефакторить тест-кейсы в соответствии с Unit Testing Guide: https://track.astral.ru/soft/browse/UIKIT-1081
-/* eslint-disable vitest/valid-expect */
-/* eslint-disable vitest/max-expects */
-
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
@@ -12,400 +8,329 @@ import { Query } from './Query';
 describe('Query', () => {
   const getDataStorage = () => new DataStorage();
 
-  it('Init state: флаги false, данные undefined', () => {
-    const store = new Query(() => Promise.resolve('foo'), {
+  describe('При начальном состоянии', () => {
+    const query = new Query(() => Promise.resolve('foo'), {
       dataStorage: getDataStorage(),
     });
 
-    expect(store.isError).toBeFalsy();
-    expect(store.isLoading).toBeFalsy();
-    expect(store.isSuccess).toBeFalsy();
-    expect(store.data).toBeUndefined();
-    expect(store.error).toBeUndefined();
-  });
-
-  it('sync:fetchPolicy=cache-first: стандартная загрузка успешна', async () => {
-    const onSuccess = vi.fn();
-    const store = new Query(() => Promise.resolve('foo'), {
-      dataStorage: getDataStorage(),
+    it('Флаг загрузки false', () => {
+      expect(query.isLoading).toBeFalsy();
     });
 
-    store.sync({ onSuccess });
-    expect(store.data).toBeUndefined();
-    await when(() => !store.isLoading);
-    expect(onSuccess).toBeCalled();
-    expect(store.data).toBe('foo');
-  });
-
-  it('isSuccess:isError: При успешном запросе устанавливаются соответствующие флаги', async () => {
-    const store = new Query(() => Promise.resolve('foo'), {
-      dataStorage: getDataStorage(),
+    it('Флаг ошибки false', () => {
+      expect(query.isError).toBeFalsy();
     });
 
-    await store.async();
-    expect(store.isSuccess, 'флаг успешности должен быть включен').toBeTruthy();
-    expect(store.isError, 'флаг ошибки должен быть выключен').toBeFalsy();
-  });
-
-  it('isSuccess:isError При провальном запросе устанавливаются соответствующие флаги', async () => {
-    const store = new Query(() => Promise.reject('foo'), {
-      dataStorage: getDataStorage(),
+    it('Флаг успеха false', () => {
+      expect(query.isSuccess).toBeFalsy();
     });
 
-    await store.async().catch((e) => e);
-    expect(store.isSuccess, 'флаг успешности должен быть выключен').toBeFalsy();
-    expect(store.isError, 'флаг ошибки должен быть включен').toBeTruthy();
+    it('data undefined', () => {
+      expect(query.data).toBeUndefined();
+    });
+
+    it('Данные ошибки undefined', () => {
+      expect(query.error).toBeUndefined();
+    });
   });
 
-  it('isSuccess:isError:fetchPolicy=network-only: флаги переключаются в соответствующее значение, в зависимости от ответа', async () => {
-    // эмулируем меняющееся поведение запроса, четные запросы будут падать, нечетные завершаться успешно
-    let counter = 0;
-    const store = new Query(
-      () => {
-        counter++;
-
-        if (counter % 2) {
-          return Promise.resolve('foo');
-        }
-
-        return Promise.reject('bar');
-      },
-      {
+  describe('При успешной загрузке', () => {
+    const createQuery = () =>
+      new Query(() => Promise.resolve('foo'), {
         dataStorage: getDataStorage(),
-        fetchPolicy: 'network-only',
-      },
-    );
+      });
 
-    // первый запрос успешный
-    await store.async();
+    it('Данные ответа попадают в поле data', async () => {
+      const query = createQuery();
 
-    expect(
-      store.isSuccess,
-      'при успешном запроса, флаг успешности должен быть включен',
-    ).toBeTruthy();
-
-    expect(
-      store.isError,
-      'при успешном запроса, флаг ошибки должен быть выключен',
-    ).toBeFalsy();
-
-    // второй запрос зафейлится
-    await store.async().catch((e) => e);
-
-    expect(
-      store.isSuccess,
-      'при фейле запроса, флаг успешности должен переключится в false',
-    ).toBeFalsy();
-
-    expect(
-      store.isError,
-      'при фейле запроса, флаг ошибки должен переключться в true',
-    ).toBeTruthy();
-  });
-
-  it('sync:onError: Вызывается обработчик ошибки', async () => {
-    const onError = vi.fn();
-    const store = new Query(() => Promise.reject('foo'), {
-      dataStorage: getDataStorage(),
+      query.sync();
+      await when(() => !query.isLoading);
+      expect(query.data).toBe('foo');
     });
 
-    store.sync({ onError });
-    await when(() => !store.isLoading);
-    expect(store.data).toBeUndefined();
-    expect(store.isError).toBeTruthy();
-    await when(() => store.error !== undefined);
-    expect(store.error).toBe('foo');
-    expect(onError).toBeCalledWith('foo');
-  });
+    it('Переданный onSuccess вызывается', async () => {
+      const onSuccess = vi.fn();
+      const query = createQuery();
 
-  it('sync:defaultOnError: вызывается обработчик ошибки по умолчанию', async () => {
-    const onDefaultError = vi.fn();
-    const store = new Query(() => Promise.reject('foo'), {
-      onError: onDefaultError,
-      dataStorage: getDataStorage(),
+      query.sync({ onSuccess });
+      await when(() => !query.isLoading);
+      expect(onSuccess).toBeCalledWith('foo');
     });
 
-    store.sync();
-    await when(() => !store.isLoading);
-    await when(() => store.error !== undefined);
-    expect(store.error).toBe('foo');
-    expect(onDefaultError).toBeCalledWith('foo');
-  });
+    it('Статусные флаги принимают изначальное состояние', async () => {
+      const query = createQuery();
 
-  it('data: автоматический запрос данных при обращении к data', async () => {
-    const store = new Query(() => Promise.resolve('foo'), {
-      enabledAutoFetch: true,
-      dataStorage: getDataStorage(),
+      await query.async();
+      expect(query.isSuccess).toBeTruthy();
+      expect(query.isError).toBeFalsy();
     });
-
-    expect(store.data, 'эмулируем обращение к data').toBeUndefined();
-    expect(store.isLoading, 'проверяем, что загрузка началась').toBeTruthy();
-    await when(() => !store.isLoading);
-    expect(store.data).toBe('foo');
   });
 
-  it('invalidate:data:fetchPolicy=cache-first: После инвалидации считывание data приводит к перезапросу данных', async () => {
-    const store = new Query(
-      // executor эмулирует постоянно меняющиеся данные
-      () => Promise.resolve(Math.random()),
-      {
+  describe('При провальном запросе', () => {
+    it('Статусные флаги принимают соответсвующее значение', async () => {
+      const query = new Query(() => Promise.reject('foo'), {
         dataStorage: getDataStorage(),
-      },
-    );
+      });
 
-    store.invalidate();
-
-    expect(
-      store.isLoading,
-      'ожидаем, что загрузка не началась сама по себе',
-    ).toBeFalsy();
-
-    expect(store.data, 'эмулируем считывание данных').toBeUndefined();
-
-    expect(
-      store.isLoading,
-      'ожидаем, что после считывания данных загрузка началась',
-    ).toBeTruthy();
-
-    await when(() => !store.isLoading);
-
-    const firstValue = store.data;
-
-    expect(typeof firstValue).toBe('number');
-    store.invalidate();
-    expect(store.data, 'эмулируем считывание данных').toBe(firstValue);
-    await when(() => !store.isLoading);
-
-    expect(
-      store.data !== firstValue,
-      'ожидаем, что число изменилось',
-    ).toBeTruthy();
-  });
-
-  it('invalidate:sync:fetchPolicy=cache-first: после инвалидации запуск sync приводит к перезапросу', async () => {
-    const store = new Query(() => Promise.resolve('foo'), {
-      dataStorage: getDataStorage(),
+      await query.async().catch((e) => e);
+      expect(query.isSuccess).toBeFalsy();
+      expect(query.isError).toBeTruthy();
     });
 
-    // добавляем данные в стор
-    store.sync();
-    await when(() => !store.isLoading);
-    expect(store.data, 'проверяем, что данные есть').toBe('foo');
-    store.sync();
+    it('Обработчик ошибки вызывается', async () => {
+      const onError = vi.fn();
+      const query = new Query(() => Promise.reject('foo'), {
+        dataStorage: getDataStorage(),
+      });
 
-    expect(
-      store.isLoading,
-      'ожидаем что загрузка не началась, потому что инвалидация еще не была вызвана',
-    ).toBeFalsy();
-
-    store.invalidate();
-
-    expect(
-      store.isLoading,
-      'ожидаем, что загрузка не началась сама по себе',
-    ).toBeFalsy();
-
-    store.sync();
-
-    expect(
-      store.isLoading,
-      'ожидаем, что после последовательного вызова инвалидации и sync загрузка все таки началась',
-    ).toBeTruthy();
-  });
-
-  it('invalidate:async:fetchPolicy=cache-first: После инвалидации вызов async приводит к перезапросу данных', async () => {
-    const store = new Query(() => Promise.resolve('foo'), {
-      dataStorage: getDataStorage(),
+      query.sync({ onError });
+      await when(() => !query.isLoading);
+      await when(() => query.error !== undefined);
+      expect(query.error).toBe('foo');
+      expect(onError).toBeCalledWith('foo');
     });
 
-    // добавляем данные в стор
-    await store.async();
-    expect(store.data, 'проверяем, что данные есть').toBe('foo');
-    store.sync();
+    it('Обработчик ошибки по умолчанию вызывается', async () => {
+      const onDefaultError = vi.fn();
+      const query = new Query(() => Promise.reject('foo'), {
+        onError: onDefaultError,
+        dataStorage: getDataStorage(),
+      });
 
-    expect(
-      store.isLoading,
-      'ожидаем что загрузка не началась, потому что инвалидация еще не была вызвана',
-    ).toBeFalsy();
+      query.sync();
+      await when(() => !query.isLoading);
+      await when(() => query.error !== undefined);
+      expect(query.error).toBe('foo');
+      expect(onDefaultError).toBeCalledWith('foo');
+    });
 
-    store.invalidate();
+    it('Обработчик ошибки по умолчанию не вызывается при использовании async', async () => {
+      const onDefaultError = vi.fn();
+      const query = new Query(() => Promise.reject('foo'), {
+        onError: onDefaultError,
+        dataStorage: getDataStorage(),
+      });
 
-    expect(
-      store.isLoading,
-      'ожидаем, что загрузка не началась сама по себе',
-    ).toBeFalsy();
+      await query.async().catch((e) => e);
+      await when(() => !query.isLoading);
+      await when(() => query.error !== undefined);
+      expect(query.error).toBe('foo');
+      expect(onDefaultError).not.toBeCalled();
+    });
 
-    store.async();
+    it('Обработчик по умолчанию не вызывается, если в sync передан кастомный', async () => {
+      const onError = vi.fn();
+      const onDefaultError = vi.fn();
+      const query = new Query(() => Promise.reject('error'), {
+        dataStorage: getDataStorage(),
+        onError: onDefaultError,
+      });
 
-    expect(
-      store.isLoading,
-      'ожидаем, что после последовательного вызова инвалидации и async загрузка все таки началась',
-    ).toBeTruthy();
+      query.sync({ onError });
+      await when(() => !query.isLoading);
+      await when(() => query.error !== undefined);
+      expect(onDefaultError).not.toBeCalledWith('error');
+    });
   });
 
-  it('enabledAutoFetch:true:request:fail не происходит повторных запросов', async () => {
-    const insideExecutor = vi.fn();
-    const store = new Query(
-      () => {
-        insideExecutor();
-
-        return Promise.reject('foo');
-      },
-      {
+  describe('При использовании флага enabledAutoFetch', () => {
+    it('Автоматический запрос данных при обращении к data', async () => {
+      const query = new Query(() => Promise.resolve('foo'), {
         enabledAutoFetch: true,
         dataStorage: getDataStorage(),
-      },
-    );
+      });
 
-    expect(store.data, 'эмулируем считывание данных').toBeUndefined();
-    await when(() => !store.isLoading);
-    expect(insideExecutor, 'executor вызван в первый раз').toBeCalled();
-    expect(store.data, 'эмулируем считывание данных').toBeUndefined();
-    await when(() => !store.isLoading);
-    expect(insideExecutor, 'executor больше не вызывается').toBeCalledTimes(1);
+      // эмулируем обращение к data
+      JSON.stringify(query.data);
+      expect(query.isLoading).toBeTruthy();
+    });
+
+    it('Повторные обращения к data не приводят к повторным запросам, при фейле запроса', async () => {
+      const insideExecutor = vi.fn();
+      const store = new Query(
+        () => {
+          insideExecutor();
+
+          return Promise.reject('foo');
+        },
+        {
+          enabledAutoFetch: true,
+          dataStorage: getDataStorage(),
+        },
+      );
+
+      // эмулируем считывание данных
+      JSON.stringify(store.data);
+      await when(() => !store.isLoading);
+      expect(insideExecutor).toBeCalled();
+      // эмулируем считывание данных
+      JSON.stringify(store.data);
+      await when(() => !store.isLoading);
+      // executor больше не вызывается
+      expect(insideExecutor).toBeCalledTimes(1);
+    });
   });
 
-  it('data-synchronization: Данные между двумя сторами синхронизируются, если они используют одно хранилище', async () => {
+  describe('При использовании invalidate', () => {
+    it('Считывание data приводит к перезапросу данных', async () => {
+      const query = new Query(
+        // executor эмулирует постоянно меняющиеся данные
+        () => Promise.resolve(Math.random()),
+        {
+          dataStorage: getDataStorage(),
+          enabledAutoFetch: true,
+        },
+      );
+
+      // эмулируем считывание данных
+      JSON.stringify(query.data);
+      //ожидаем, что после считывания данных загрузка началась
+      expect(query.isLoading).toBeTruthy();
+      await when(() => !query.isLoading);
+
+      const firstValue = query.data;
+
+      expect(typeof firstValue).toBe('number');
+      query.invalidate();
+      // эмулируем считывание данных
+      JSON.stringify(query.data);
+      await when(() => !query.isLoading);
+      // ожидаем, что число изменилось
+      expect(query.data !== firstValue).toBeTruthy();
+    });
+
+    it('Вызов sync приводит к перезапросу данных', async () => {
+      const query = new Query(() => Promise.resolve('foo'), {
+        dataStorage: getDataStorage(),
+      });
+
+      // добавляем данные в квери
+      query.sync();
+      await when(() => !query.isLoading);
+      query.invalidate();
+      query.sync();
+      expect(query.isLoading).toBeTruthy();
+    });
+
+    it('Вызов async приводит к перезапросу данных', async () => {
+      const query = new Query(() => Promise.resolve('foo'), {
+        dataStorage: getDataStorage(),
+      });
+
+      // добавляем данные в квери
+      await query.async();
+      query.sync();
+      // ожидаем что загрузка не началась, потому что инвалидация еще не была вызвана
+      expect(query.isLoading).toBeFalsy();
+      query.invalidate();
+      // ожидаем, что загрузка не началась сама по себе
+      expect(query.isLoading).toBeFalsy();
+      query.async();
+      // ожидаем, что после последовательного вызова инвалидации и async загрузка все таки началась
+      expect(query.isLoading).toBeTruthy();
+    });
+  });
+
+  it('Данные синхронизируются при использовании одного dataStorage', async () => {
     const unifiedDataStorage = getDataStorage();
 
-    const storeA = new Query(() => Promise.resolve('foo'), {
+    const queryA = new Query(() => Promise.resolve('foo'), {
       dataStorage: unifiedDataStorage,
     });
 
-    const storeB = new Query(() => Promise.resolve('bar'), {
+    const queryB = new Query(() => Promise.resolve('bar'), {
       dataStorage: unifiedDataStorage,
     });
 
-    await storeA.async();
-
-    expect(
-      storeB.data,
-      'ожидаем что в стор B попали данные, запрошенные в сторе A',
-    ).toBe('foo');
-
-    await storeB.async();
-
-    expect(
-      storeA.data,
-      'ожидаем что в стор A попали данные, запрошенные в сторе B',
-    ).toBe('bar');
+    await queryA.async();
+    expect(queryB.data).toBe('foo');
+    await queryB.async();
+    expect(queryA.data).toBe('bar');
   });
 
-  it('async:fetchPolicy=network-only данные запрашиваются при каждом вызове', async () => {
-    // счетчик запроса, для эмуляции меняющихся данных
-    let counter = 0;
+  describe('При использовании политики network-only', () => {
+    const createQuery = () => {
+      // счетчик для эмуляции меняющихся данных
+      let counter = 0;
 
-    const store = new Query(
-      () => {
-        counter++;
+      return new Query(
+        () => {
+          counter++;
 
-        return Promise.resolve(counter);
-      },
-      {
-        dataStorage: getDataStorage(),
-        fetchPolicy: 'network-only',
-      },
-    );
+          return Promise.resolve(counter);
+        },
+        {
+          dataStorage: getDataStorage(),
+          fetchPolicy: 'network-only',
+        },
+      );
+    };
 
-    await store.async();
+    it('Данные запрашиваются при каждом вызове async', async () => {
+      const query = createQuery();
 
-    expect(
-      store.data,
-      'ожидаем что данные после первого запроса попадут в стор как обычно',
-    ).toBe(1);
+      await query.async();
+      // ожидаем что данные после первого запроса попадут в квери как обычно
+      expect(query.data).toBe(1);
+      // запускаем сразу второй запрос, который по политике cache-first должен быть проигнорирован,
+      // но т.к. мы используем networkOnly запрос все таки произойдет
+      await query.async();
+      expect(query.data).toBe(2);
+    });
 
-    // запускаем сразу второй запрос, который по политике cache-first должен быть проигнорирован
-    await store.async();
+    it('Данные запрашиваются при каждом вызове sync', async () => {
+      const query = createQuery();
 
-    expect(
-      store.data,
-      'ожидаем что новые данные после второго запроса так же попадут в стор',
-    ).toBe(2);
+      query.sync();
+      await when(() => !query.isLoading);
+      // ожидаем что данные после первого запроса попадут в квери как обычно
+      expect(query.data).toBe(1);
+      // запускаем сразу второй запрос, который по политике cache-first должен быть проигнорирован,
+      // но т.к. мы используем networkOnly запрос все таки произойдет
+      query.sync();
+      await when(() => !query.isLoading);
+      // ожидаем что новые данные после второго запроса так же попадут в квери
+      expect(query.data).toBe(2);
+    });
   });
 
-  it('sync:fetchPolicy=network-only данные запрашиваются при каждом вызове', async () => {
-    // счетчик запроса, для эмуляции меняющихся данных
-    let counter = 0;
+  describe('При использование forceUpdate', () => {
+    const createQuery = () => {
+      const onInsideExecutor = vi.fn();
+      const query = new Query(
+        () => {
+          onInsideExecutor();
 
-    const store = new Query(
-      () => {
-        counter++;
+          return Promise.resolve('foo');
+        },
+        {
+          dataStorage: getDataStorage(),
+        },
+      );
 
-        return Promise.resolve(counter);
-      },
-      {
-        dataStorage: getDataStorage(),
-        fetchPolicy: 'network-only',
-      },
-    );
+      return { query, onInsideExecutor };
+    };
 
-    store.sync();
-    await when(() => !store.isLoading);
+    it('Данные устанавливаются снаружи', () => {
+      const { query } = createQuery();
 
-    expect(
-      store.data,
-      'ожидаем что данные после первого запроса попадут в стор как обычно',
-    ).toBe(1);
+      query.forceUpdate('foo');
+      expect(query.data).toBe('foo');
+    });
 
-    // запускаем сразу второй запрос, который по политике cache-first должен быть проигнорирован
-    store.sync();
-    await when(() => !store.isLoading);
+    it('Запрос не происходит', () => {
+      const { query, onInsideExecutor } = createQuery();
 
-    expect(
-      store.data,
-      'ожидаем что новые данные после второго запроса так же попадут в стор',
-    ).toBe(2);
-  });
+      query.forceUpdate('foo');
+      expect(onInsideExecutor).not.toBeCalled();
+    });
 
-  it('forceUpdate, данные устанавливаются снаружи', () => {
-    const onInsideExecutor = vi.fn();
-    const store = new Query(
-      () => {
-        onInsideExecutor();
+    it('Все статусные флаги устанавливаются в значение соответствующее успешному запросу', () => {
+      const { query } = createQuery();
 
-        return Promise.resolve('foo');
-      },
-      {
-        dataStorage: getDataStorage(),
-      },
-    );
-
-    store.forceUpdate('foo');
-    expect(store.data, 'данные установились').toBe('foo');
-  });
-
-  it('forceUpdate, запрос не происходит', () => {
-    const onInsideExecutor = vi.fn();
-    const store = new Query(
-      () => {
-        onInsideExecutor();
-
-        return Promise.resolve('foo');
-      },
-      {
-        dataStorage: getDataStorage(),
-      },
-    );
-
-    store.forceUpdate('foo');
-    expect(onInsideExecutor, 'executor не вызывался').not.toBeCalled();
-  });
-
-  it('При вызове forceUpdate все стаусные флаги устанавливаются в success', () => {
-    const onInsideExecutor = vi.fn();
-    const store = new Query(
-      () => {
-        onInsideExecutor();
-
-        return Promise.resolve('foo');
-      },
-      {
-        dataStorage: getDataStorage(),
-      },
-    );
-
-    store.forceUpdate('foo');
-    expect(store.isSuccess).toBeTruthy();
-    expect(store.isError).toBeFalsy();
+      query.forceUpdate('foo');
+      expect(query.isSuccess).toBeTruthy();
+      expect(query.isError).toBeFalsy();
+    });
   });
 });

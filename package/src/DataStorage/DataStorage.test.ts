@@ -3,19 +3,36 @@ import { describe, expect, it } from 'vitest';
 import { DataStorage, DataStorageFactory } from './DataStorage';
 
 describe('DataStorage', () => {
-  it('Данные меняются, флаг наличия данных меняется', () => {
-    const storage = new DataStorage();
+  const createStorage = () => new DataStorage();
 
-    // TODO: для каждого expect должен быть свой тест-кейс: https://track.astral.ru/soft/browse/UIKIT-1081
-    // eslint-disable-next-line vitest/valid-expect
-    expect(storage.data, 'данных изначально нет').toBeUndefined();
-    // eslint-disable-next-line vitest/valid-expect
-    expect(storage.hasData, 'флаг данных выключен').toBeFalsy();
-    storage.setData(['foo']);
-    // eslint-disable-next-line vitest/valid-expect
-    expect(storage.hasData, 'флаг данных включен').toBeTruthy();
-    // eslint-disable-next-line vitest/valid-expect
-    expect(storage.data, 'данные появились').toStrictEqual(['foo']);
+  describe('При исходном состоянии', () => {
+    it('Данных изначально нет', () => {
+      const storage = createStorage();
+
+      expect(storage.data).toBeUndefined();
+    });
+
+    it('Флаг данных выключен', () => {
+      const storage = createStorage();
+
+      expect(storage.hasData).toBeFalsy();
+    });
+  });
+
+  describe('При установке данных', () => {
+    it('Флаг наличия данных включен', () => {
+      const storage = createStorage();
+
+      storage.setData(['foo']);
+      expect(storage.hasData).toBeTruthy();
+    });
+
+    it('Данные появились', () => {
+      const storage = createStorage();
+
+      storage.setData(['foo']);
+      expect(storage.data).toStrictEqual(['foo']);
+    });
   });
 });
 
