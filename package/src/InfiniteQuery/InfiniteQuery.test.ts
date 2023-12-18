@@ -371,34 +371,21 @@ describe('InfiniteQuery', () => {
     });
   });
 
-  describe('Синхронизация данных через dataStorage', () => {
-    const createQuery = () => {
-      const unifiedDataStorage = getDataStorage();
+  it('Данные синхронизируются при использовании одного dataStorage', async () => {
+    const unifiedDataStorage = getDataStorage();
 
-      const queryA = new InfiniteQuery(() => Promise.resolve(['foo']), {
-        dataStorage: unifiedDataStorage,
-      });
-
-      const queryB = new InfiniteQuery(() => Promise.resolve(['bar']), {
-        dataStorage: unifiedDataStorage,
-      });
-
-      return { queryA, queryB };
-    };
-
-    it('Квери B получает данные, запрошенные в сторе A', async () => {
-      const { queryA, queryB } = createQuery();
-
-      await queryA.async();
-      expect(queryB.data).toStrictEqual(['foo']);
+    const queryA = new InfiniteQuery(() => Promise.resolve(['foo']), {
+      dataStorage: unifiedDataStorage,
     });
 
-    it('Квери A получает данные, запрошенные в сторе B', async () => {
-      const { queryA, queryB } = createQuery();
-
-      await queryB.async();
-      expect(queryA.data).toStrictEqual(['bar']);
+    const queryB = new InfiniteQuery(() => Promise.resolve(['bar']), {
+      dataStorage: unifiedDataStorage,
     });
+
+    await queryA.async();
+    expect(queryB.data).toStrictEqual(['foo']);
+    await queryB.async();
+    expect(queryA.data).toStrictEqual(['bar']);
   });
 
   describe('При политике network-only', () => {

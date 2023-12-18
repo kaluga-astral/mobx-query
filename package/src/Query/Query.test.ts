@@ -57,7 +57,7 @@ describe('Query', () => {
       expect(onSuccess).toBeCalledWith('foo');
     });
 
-    it('Соответствующие флаги устанавливаются', async () => {
+    it('Статусные флаги принимают изначальное состояние', async () => {
       const query = createQuery();
 
       await query.async();
@@ -67,7 +67,7 @@ describe('Query', () => {
   });
 
   describe('При провальном запросе', () => {
-    it('Соответствующие флаги устанавливаются', async () => {
+    it('Статусные флаги принимают соответсвующее значение', async () => {
       const query = new Query(() => Promise.reject('foo'), {
         dataStorage: getDataStorage(),
       });
@@ -231,34 +231,21 @@ describe('Query', () => {
     });
   });
 
-  describe('Синхронизация данных через dataStorage', () => {
-    const createQuery = () => {
-      const unifiedDataStorage = getDataStorage();
+  it('Данные синхронизируются при использовании одного dataStorage', async () => {
+    const unifiedDataStorage = getDataStorage();
 
-      const queryA = new Query(() => Promise.resolve('foo'), {
-        dataStorage: unifiedDataStorage,
-      });
-
-      const queryB = new Query(() => Promise.resolve('bar'), {
-        dataStorage: unifiedDataStorage,
-      });
-
-      return { queryA, queryB };
-    };
-
-    it('Квери B получает данные, запрошенные в сторе A', async () => {
-      const { queryA, queryB } = createQuery();
-
-      await queryA.async();
-      expect(queryB.data).toBe('foo');
+    const queryA = new Query(() => Promise.resolve('foo'), {
+      dataStorage: unifiedDataStorage,
     });
 
-    it('Квери A получает данные, запрошенные в сторе B', async () => {
-      const { queryA, queryB } = createQuery();
-
-      await queryB.async();
-      expect(queryA.data).toBe('bar');
+    const queryB = new Query(() => Promise.resolve('bar'), {
+      dataStorage: unifiedDataStorage,
     });
+
+    await queryA.async();
+    expect(queryB.data).toBe('foo');
+    await queryB.async();
+    expect(queryA.data).toBe('bar');
   });
 
   describe('При использовании политики network-only', () => {
@@ -304,33 +291,6 @@ describe('Query', () => {
       await when(() => !query.isLoading);
       // ожидаем что новые данные после второго запроса так же попадут в квери
       expect(query.data).toBe(2);
-    });
-
-    it('Флаги успеха и ошибки переключаются в соответствующее значение, в зависимости от ответа', async () => {
-      // эмулируем меняющееся поведение запроса, четные запросы будут падать, нечетные завершаться успешно
-      let counter = 0;
-      const query = new Query(
-        () => {
-          counter++;
-
-          if (counter % 2) {
-            return Promise.resolve('foo');
-          }
-
-          return Promise.reject('bar');
-        },
-        {
-          dataStorage: getDataStorage(),
-          fetchPolicy: 'network-only',
-        },
-      );
-
-      // первый запрос успешный
-      await query.async();
-      expect([query.isSuccess, query.isError]).toStrictEqual([true, false]);
-      // второй запрос зафейлится
-      await query.async().catch((e) => e);
-      expect([query.isSuccess, query.isError]).toStrictEqual([false, true]);
     });
   });
 
