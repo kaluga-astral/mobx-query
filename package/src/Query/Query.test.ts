@@ -145,6 +145,25 @@ describe('Query', () => {
       expect(query.isLoading).toBeTruthy();
     });
 
+    it('Автоматический запрос данных не происходит при обращении к data и при enabledAutoFetch: false', async () => {
+      const inExecutor = vi.fn();
+      const query = new Query(
+        () => {
+          inExecutor();
+
+          return Promise.resolve('foo');
+        },
+        {
+          enabledAutoFetch: false,
+          dataStorage: getDataStorage(),
+        },
+      );
+
+      // эмулируем обращение к data
+      JSON.stringify(query.data);
+      expect(inExecutor).not.toBeCalled();
+    });
+
     it('Повторные обращения к data не приводят к повторным запросам, при фейле запроса', async () => {
       const insideExecutor = vi.fn();
       const store = new Query(
