@@ -397,6 +397,7 @@ class BooksListStore {
 ### Тест
 
 ```ts
+import { when } from 'mobx';
 
 describe('BooksListStore', () => {
   it('Список книг форматируется для отображения', async () => {
