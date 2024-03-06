@@ -265,4 +265,32 @@ describe('MobxQuery', () => {
     await queryBar.async();
     expect(spyExecutor).toBeCalledTimes(4);
   });
+
+  it('Автозапрос данных вызывается при enabledAutoFetch=true для всего сервиса', async () => {
+    const mobxQuery = new MobxQuery({ enabledAutoFetch: true });
+
+    const query = mobxQuery.createQuery([['foo']], () => {
+      return Promise.resolve('data');
+    });
+
+    // эмулируем обращение к data
+    JSON.stringify(query.data);
+    expect(query.isLoading).toBeTruthy();
+  });
+
+  it('Автозапрос данных не вызывается при enabledAutoFetch=false в фабричном методе и при enabledAutoFetch=true для всего сервиса', async () => {
+    const mobxQuery = new MobxQuery({ enabledAutoFetch: true });
+
+    const query = mobxQuery.createQuery(
+      [['foo']],
+      () => Promise.resolve('data'),
+      {
+        enabledAutoFetch: false,
+      },
+    );
+
+    // эмулируем обращение к data
+    JSON.stringify(query.data);
+    expect(query.isLoading).toBeFalsy();
+  });
 });
