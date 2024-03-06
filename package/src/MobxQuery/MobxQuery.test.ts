@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
-import { MobxQuery } from './MobxQuery';
+import { Query } from '../Query';
+
+import { type CreateQuery, MobxQuery } from './MobxQuery';
 
 const checkLoading = (items: { isLoading: boolean }[]) =>
   items.every((item) => item.isLoading === false);
@@ -264,5 +266,39 @@ describe('MobxQuery', () => {
     await queryFoo.async();
     await queryBar.async();
     expect(spyExecutor).toBeCalledTimes(4);
+  });
+
+  const buildCreateQuery = () => {
+    const spy = vi.fn();
+
+    const createQuery: CreateQuery = <TResult, TError>(
+      ...params: ConstructorParameters<typeof Query<TResult, TError>>
+    ) => {
+      spy(params[1].enabledAutoFetch);
+
+      return new Query<TResult, TError>(...params);
+    };
+
+    return { spy, createQuery };
+  };
+
+  it('Cоздание Query вызывается с enabledAutoFetch=true при enabledAutoFetch=true для всего сервиса', async () => {
+    const { spy, createQuery } = buildCreateQuery();
+    const mobxQuery = new MobxQuery({ enabledAutoFetch: true, createQuery });
+
+    mobxQuery.createQuery([['foo']], () => Promise.resolve('data'));
+    expect(spy).toBeCalledWith(true);
+  });
+
+  it('Cоздание Query вызывается с enabledAutoFetch=false при enabledAutoFetch=false в фабричном методе и при enabledAutoFetch=true для всего сервиса', async () => {
+    const { spy, createQuery } = buildCreateQuery();
+
+    const mobxQuery = new MobxQuery({ enabledAutoFetch: true, createQuery });
+
+    mobxQuery.createQuery([['foo']], () => Promise.resolve('data'), {
+      enabledAutoFetch: false,
+    });
+
+    expect(spy).toBeCalledWith(false);
   });
 });

@@ -7,6 +7,35 @@ import { Mutation } from '../Mutation';
 import type { CacheKey, FetchPolicy } from '../types';
 import { DataStorageFactory } from '../DataStorage';
 
+const defaultCreateQuery = <TResult, TError>(
+  ...params: ConstructorParameters<typeof Query<TResult, TError>>
+) => new Query<TResult, TError>(...params);
+
+/**
+ * DI для фабричного метода создания обычного квери
+ */
+export type CreateQuery = typeof defaultCreateQuery;
+
+const defaultCreateInfiniteQuery = <TResult, TError>(
+  ...params: ConstructorParameters<typeof InfiniteQuery<TResult, TError>>
+) => new InfiniteQuery<TResult, TError>(...params);
+
+/**
+ * DI для фабричного метода создания инфинит квери
+ */
+export type CreateInfiniteQuery = typeof defaultCreateInfiniteQuery;
+
+const defaultCreateMutation = <TResult, TError, TExecutorParams>(
+  ...params: ConstructorParameters<
+    typeof Mutation<TResult, TError, TExecutorParams>
+  >
+) => new Mutation<TResult, TError, TExecutorParams>(...params);
+
+/**
+ * DI для фабричного метода создания мутации
+ */
+export type CreateMutation = typeof defaultCreateMutation;
+
 /**
  * @description время, спустя которое, запись о query c network-only будет удалена
  */
@@ -31,6 +60,9 @@ type MobxQueryParams = {
    * @default false
    */
   enabledAutoFetch?: boolean;
+  createQuery?: CreateQuery;
+  createInfiniteQuery?: CreateInfiniteQuery;
+  createMutation?: CreateMutation;
 };
 
 type CreateQueryParams<TResult, TError> = Omit<
@@ -68,6 +100,21 @@ export class MobxQuery<TDefaultError = void> {
   >();
 
   /**
+   * DI для фабричного метода создания обычного квери
+   */
+  private readonly internalCreateQuery: CreateQuery;
+
+  /**
+   * DI для фабричного метода создания инфинит квери
+   */
+  private readonly internalCreateInfiniteQuery: CreateInfiniteQuery;
+
+  /**
+   * DI для фабричного метода создания мутации
+   */
+  private readonly internalCreateMutation: CreateMutation;
+
+  /**
    * @description фабрика создания хранилищ данных для обычного Query
    */
   private queryDataStorageFactory = new DataStorageFactory();
@@ -99,10 +146,16 @@ export class MobxQuery<TDefaultError = void> {
     onError,
     fetchPolicy = 'cache-first',
     enabledAutoFetch = false,
+    createQuery = defaultCreateQuery,
+    createInfiniteQuery = defaultCreateInfiniteQuery,
+    createMutation = defaultCreateMutation,
   }: MobxQueryParams = {}) {
     this.defaultErrorHandler = onError;
     this.defaultFetchPolicy = fetchPolicy;
     this.defaultEnabledAutoFetch = enabledAutoFetch;
+    this.internalCreateQuery = createQuery;
+    this.internalCreateInfiniteQuery = createInfiniteQuery;
+    this.internalCreateMutation = createMutation;
   }
 
   /**
@@ -191,7 +244,7 @@ export class MobxQuery<TDefaultError = void> {
     return this.getCachedQuery(
       key,
       () =>
-        new Query(executor, {
+        this.internalCreateQuery(executor, {
           ...params,
           onError: (params?.onError ||
             this.defaultErrorHandler) as OnError<TError>,
@@ -217,7 +270,7 @@ export class MobxQuery<TDefaultError = void> {
     return this.getCachedQuery(
       key,
       () =>
-        new InfiniteQuery(executor, {
+        this.internalCreateInfiniteQuery(executor, {
           ...params,
           onError: (params?.onError ||
             this.defaultErrorHandler) as OnError<TError>,
@@ -237,7 +290,7 @@ export class MobxQuery<TDefaultError = void> {
     executor: MutationExecutor<TResult, TExecutorParams>,
     params?: MutationParams<TResult, TError>,
   ) =>
-    new Mutation<TResult, TError, TExecutorParams>(executor, {
+    this.internalCreateMutation<TResult, TError, TExecutorParams>(executor, {
       ...params,
       onError: params?.onError || this.defaultErrorHandler,
     });
