@@ -201,7 +201,7 @@ export class MobxQuery<TDefaultError = void> {
           onError: (params?.onError ||
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
-            params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
+            params?.enabledAutoFetch ?? this.defaultEnabledAutoFetch,
           fetchPolicy: fetchPolicy,
           dataStorage: this.queryDataStorageFactory.getStorage(key),
         }),
@@ -227,7 +227,7 @@ export class MobxQuery<TDefaultError = void> {
           onError: (params?.onError ||
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
-            params?.enabledAutoFetch || this.defaultEnabledAutoFetch,
+            params?.enabledAutoFetch ?? this.defaultEnabledAutoFetch,
           dataStorage: this.infiniteQueryDataStorageFactory.getStorage(key),
           fetchPolicy: fetchPolicy,
         }),

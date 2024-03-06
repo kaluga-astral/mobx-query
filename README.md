@@ -31,6 +31,8 @@
   - [isSuccess](#issuccess)
   - [isError](#iserror)
   - [error](#error)
+- [Тестирование](#тестирование)
+  - [Тестирование при включенном enabledAutoFetch](#тестирование-при-включенном-enabledautofetch)
 
 # Installation
 
@@ -337,3 +339,94 @@ await query
 console.log(query.isError); // 'true'
 console.log(query.error); // 'foo'
 ```
+
+# Тестирование
+
+## Тестирование при включенном ```enabledAutoFetch```
+
+### Исходный код
+
+```MobxQuery``` инициализируется с параметром: ```enabledAutoFetch```:
+```ts
+const createMobxQuery = () => new MobxQuery<ApiDataError>({
+  enabledAutoFetch: true,
+});
+```
+
+```BookRepository``` - фасад для работы с данными, который использует MobxQuery:
+```ts
+export class BookRepository {
+  constructor(private readonly mobxQuery: MobxQuery) {}
+
+  public getBookListQuery = (params: BookRepositoryDTO.BookListInputDTO) =>
+    this.mobxQuery.createQuery<BookRepositoryDTO.BookListDTO>(
+      ['book-list', params],
+      () =>
+          apiHttpClient.get('/books', {
+              params,
+          }),
+    );
+}
+```
+
+```BooksListStore``` - использует BookRepository для получения данных:
+```ts
+class BooksListStore {
+  public sort?: SortData;
+
+  constructor(private readonly bookRepository: BookRepository) {
+    makeAutoObservable(this);
+  }
+
+  private get listQuery() {
+    return this.bookRepository.getBookListQuery(this.sort);
+  }
+
+  public get list(): ListItem[] {
+    const data = this.listQuery.data?.data || [];
+
+    return data.map(({ id, name, price }) => ({
+      id,
+      name,
+      price: formatPriceToView(price),
+    }));
+  }
+}
+```
+
+### Тест
+
+```ts
+import { when } from 'mobx';
+
+describe('BooksListStore', () => {
+  it('Список книг форматируется для отображения', async () => {
+    // Для каждого теста необходимо инициализировать свой instance MobxQuery,
+    // иначе будет проблема состояния гонки при выполнении нескольких тестов
+    const mobxQuery = createMobxQuery();
+
+    const fakeBookList = makeFakeBookList(2, { price: 1000 });
+    const fakeBookListItem = fakeBookList.data[0];
+
+    const bookRepositoryMock = mock<BookRepository>({
+      // Подменяем реализацию метода для того, чтобы получить ожидаемый результат
+      getBookListQuery: () =>
+          // Создаем моковый Query, соответствующий интерфейсу BookRepository
+          mobxQuery.createQuery(['id'], async () => fakeBookList),
+    });
+
+    const sut = new GoodsListStore(bookRepositoryMock);
+
+    // Ждем автоматической загрузки данных
+    // Загрузка данных начнется автоматически при обращении к sut.list за счет параметра enabledAutoFetch
+    await when(() => Boolean(sut.list?.length));
+
+    expect(sut.list[0]).toMatchObject({
+      id: fakeBookListItem.id,
+      name: fakeBookListItem.name,
+      price: '1 000 руб.',
+    });
+  });
+});
+```
+

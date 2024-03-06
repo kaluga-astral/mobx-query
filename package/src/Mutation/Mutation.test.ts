@@ -7,9 +7,9 @@ describe('Mutation', () => {
   it('Init state: флаги false, данные undefined', () => {
     const store = new Mutation(() => Promise.resolve('foo'));
 
-    expect(store.isError).toBe(false);
-    expect(store.isLoading).toBe(false);
-    expect(store.error).toBe(undefined);
+    expect(store.isError).toBeFalsy();
+    expect(store.isLoading).toBeFalsy();
+    expect(store.error).toBeUndefined();
   });
 
   it('sync: стандартная загрузка успешна', async () => {
@@ -17,10 +17,10 @@ describe('Mutation', () => {
     const store = new Mutation(() => Promise.resolve('foo'));
 
     store.sync({ onSuccess: onSyncSuccess });
-    expect(store.isLoading).toBe(true);
+    expect(store.isLoading).toBeTruthy();
     await when(() => !store.isLoading);
     expect(onSyncSuccess).toBeCalledWith('foo');
-    expect(store.isLoading).toBe(false);
+    expect(store.isLoading).toBeFalsy();
   });
 
   it('async: стандартная загрузка успешна', async () => {
@@ -29,7 +29,7 @@ describe('Mutation', () => {
 
     await store.async().then(onAsyncSuccess);
     expect(onAsyncSuccess).toBeCalledWith('foo');
-    expect(store.isLoading).toBe(false);
+    expect(store.isLoading).toBeFalsy();
   });
 
   it('sync: При вызове передаются параметры', async () => {
@@ -62,8 +62,8 @@ describe('Mutation', () => {
 
     store.sync({
       onError: (e) => {
-        expect(store.isLoading).toBe(false);
-        expect(store.isError).toBe(true);
+        expect(store.isLoading).toBeFalsy();
+        expect(store.isError).toBeTruthy();
         expect(e).toBe('foo');
       },
     });
@@ -72,8 +72,8 @@ describe('Mutation', () => {
   it('sync: при провальном запросе вызывается стандартный onError', async () => {
     const store = new Mutation(() => Promise.reject('foo'), {
       onError: (e) => {
-        expect(store.isLoading).toBe(false);
-        expect(store.isError).toBe(true);
+        expect(store.isLoading).toBeFalsy();
+        expect(store.isError).toBeTruthy();
         expect(e).toBe('foo');
       },
     });
@@ -89,7 +89,7 @@ describe('Mutation', () => {
     });
 
     await store.async().catch(onAsyncError);
-    expect(store.isError).toBe(true);
+    expect(store.isError).toBeTruthy();
     expect(onAsyncError).toBeCalledWith('foo');
     expect(onDefaultError).not.toBeCalled();
   });
