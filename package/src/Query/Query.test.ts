@@ -25,6 +25,10 @@ describe('Query', () => {
       expect(query.isSuccess).toBeFalsy();
     });
 
+    it('Флаг простаивания true', () => {
+      expect(query.isIdle).toBeTruthy();
+    });
+
     it('data undefined', () => {
       expect(query.data).toBeUndefined();
     });
@@ -32,6 +36,15 @@ describe('Query', () => {
     it('Данные ошибки undefined', () => {
       expect(query.error).toBeUndefined();
     });
+  });
+
+  it('Флаг простаивания false сразу после запуска запроса', () => {
+    const query = new Query(() => Promise.resolve('foo'), {
+      dataStorage: getDataStorage(),
+    });
+
+    query.sync();
+    expect(query.isIdle).toBeFalsy();
   });
 
   describe('При успешной загрузке', () => {

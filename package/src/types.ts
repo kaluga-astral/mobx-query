@@ -43,6 +43,10 @@ export type QueryBaseActions<TResult, TError, TExecutorParams = void> = {
    * @description флаг обзначающий, что последний запрос был успешно выполнен
    */
   isSuccess: boolean;
+  /**
+   * флаг, обозначающий простаивание, т.е. запроса еще не было
+   */
+  isIdle: boolean;
 };
 
 /**

@@ -4,6 +4,19 @@ import { when } from 'mobx';
 import { Mutation } from './Mutation';
 
 describe('Mutation', () => {
+  it('Флаг простаивания true при начальном состоянии', () => {
+    const query = new Mutation(() => Promise.resolve('foo'));
+
+    expect(query.isIdle).toBeTruthy();
+  });
+
+  it('Флаг простаивания false сразу после запуска запроса', () => {
+    const query = new Mutation(() => Promise.resolve('foo'));
+
+    query.sync();
+    expect(query.isIdle).toBeFalsy();
+  });
+
   it('Init state: флаги false, данные undefined', () => {
     const store = new Mutation(() => Promise.resolve('foo'));
 
