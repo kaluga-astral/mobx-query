@@ -34,6 +34,11 @@ export class AuxiliaryQuery<TResult, TError = void> {
   public isSuccess = false;
 
   /**
+   * флаг, обозначающий простаивание, т.е. запроса еще не было
+   */
+  public isIdle = true;
+
+  /**
    * @description единый промис, для устранения гонки запросов
    */
   public unifiedPromise?: Promise<TResult>;
@@ -97,6 +102,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
    * @description метод, вызываемый в самом начале запроса, чтобы сбросить флаги в соответствующее значение
    */
   public startLoading = () => {
+    this.isIdle = false;
     this.isLoading = true;
     this.isError = false;
     this.isSuccess = false;

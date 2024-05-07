@@ -104,4 +104,8 @@ export class Mutation<TResult, TError = void, TExecutorParams = void>
   public get isSuccess() {
     return this.auxiliary.isSuccess;
   }
+
+  public get isIdle() {
+    return this.auxiliary.isIdle;
+  }
 }

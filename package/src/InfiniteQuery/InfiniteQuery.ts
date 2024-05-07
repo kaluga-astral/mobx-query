@@ -310,4 +310,8 @@ export class InfiniteQuery<TResult, TError = void>
   public get isSuccess() {
     return this.auxiliary.isSuccess;
   }
+
+  public get isIdle() {
+    return this.auxiliary.isIdle;
+  }
 }
