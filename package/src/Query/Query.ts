@@ -1,8 +1,9 @@
-import { makeAutoObservable, when } from 'mobx';
+import { action, computed, makeObservable, when } from 'mobx';
 
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import type { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import type { DataStorage } from '../DataStorage';
+import { QueryContainer } from '../QueryContainer';
 
 /**
  * исполнитель запроса
@@ -31,23 +32,13 @@ export type QueryParams<TResult, TError> = {
  * но им не требуется усложнение в виде работы с фильтрами и инфинити запросами
  */
 export class Query<TResult, TError = void>
+  extends QueryContainer<TError, AuxiliaryQuery<TResult, TError>>
   implements QueryBaseActions<TResult, TError, undefined>
 {
-  /**
-   * инстанс вспомогательного стора
-   */
-  private auxiliary = new AuxiliaryQuery<TResult, TError>();
-
   /**
    * хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
    */
   private storage: DataStorage<TResult>;
-
-  /**
-   * исполнитель запроса, ожидается,
-   * что будет использоваться что-то из слоя sources
-   */
-  private executor: QueryExecutor<TResult>;
 
   /**
    * обработчик ошибки, вызываемый по умолчанию
@@ -65,7 +56,7 @@ export class Query<TResult, TError = void>
   private readonly defaultFetchPolicy?: FetchPolicy;
 
   constructor(
-    executor: QueryExecutor<TResult>,
+    private readonly executor: QueryExecutor<TResult>,
     {
       onError,
       enabledAutoFetch,
@@ -73,12 +64,19 @@ export class Query<TResult, TError = void>
       dataStorage,
     }: QueryParams<TResult, TError>,
   ) {
-    this.executor = executor;
+    super(new AuxiliaryQuery<TResult, TError>());
     this.defaultOnError = onError;
     this.enabledAutoFetch = enabledAutoFetch;
     this.defaultFetchPolicy = fetchPolicy;
     this.storage = dataStorage;
-    makeAutoObservable(this);
+
+    makeObservable(this as ThisType<this>, {
+      async: action,
+      sync: action,
+      forceUpdate: action,
+      data: computed,
+      submitSuccess: action,
+    });
   }
 
   private get isNetworkOnly() {
@@ -123,7 +121,7 @@ export class Query<TResult, TError = void>
   /**
    * метод для переиспользования синхронной логики запроса
    */
-  private proceedSync: Sync<TResult, TError> = (options) => {
+  protected proceedSync: Sync<TResult, TError> = (options) => {
     const { onSuccess, onError } = options || {};
 
     this.auxiliary
@@ -176,37 +174,5 @@ export class Query<TResult, TError = void>
 
     // возвращаем имеющиеся данные
     return this.storage.data;
-  }
-
-  /**
-   * флаг загрузки данных
-   */
-  public get isLoading() {
-    return this.auxiliary.isLoading;
-  }
-
-  /**
-   * флаг обозначающий, что последний запрос был зафейлен
-   */
-  public get isError() {
-    return this.auxiliary.isError;
-  }
-
-  /**
-   * данные о последней ошибке
-   */
-  public get error() {
-    return this.auxiliary.error;
-  }
-
-  /**
-   * флаг обозначающий, что последний запрос был успешно завершен
-   */
-  public get isSuccess() {
-    return this.auxiliary.isSuccess;
-  }
-
-  public get isIdle() {
-    return this.auxiliary.isIdle;
   }
 }

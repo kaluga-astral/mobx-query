@@ -1,7 +1,8 @@
-import { makeAutoObservable } from 'mobx';
+import { action, makeObservable } from 'mobx';
 
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import type { QueryBaseActions, Sync, SyncParams } from '../types';
+import { QueryContainer } from '../QueryContainer';
 
 /**
  * исполнитель запроса
@@ -22,31 +23,21 @@ export type MutationParams<TResult, TError> = {
  * пример - POST запросы
  */
 export class Mutation<TResult, TError = void, TExecutorParams = void>
+  extends QueryContainer<TError, AuxiliaryQuery<TResult, TError>>
   implements QueryBaseActions<TResult, TError, TExecutorParams>
 {
   /**
-   * инстанс вспомогательного стора
-   */
-  private auxiliary = new AuxiliaryQuery<TResult, TError>();
-
-  /**
-   * исполнитель запроса, ожидается,
-   * что будет использоваться что-то из слоя sources
-   */
-  private executor: MutationExecutor<TResult, TExecutorParams>;
-
-  /**
    * обработчик ошибки, вызываемый по умолчанию
    */
-  private defaultOnError?: SyncParams<TResult, TError>['onError'];
+  private readonly defaultOnError?: SyncParams<TResult, TError>['onError'];
 
   constructor(
-    executor: MutationExecutor<TResult, TExecutorParams>,
+    private readonly executor: MutationExecutor<TResult, TExecutorParams>,
     { onError }: MutationParams<TResult, TError> = {},
   ) {
-    this.executor = executor;
+    super(new AuxiliaryQuery<TResult, TError>());
     this.defaultOnError = onError;
-    makeAutoObservable(this);
+    makeObservable(this, { async: action, sync: action });
   }
 
   /**
@@ -76,36 +67,4 @@ export class Mutation<TResult, TError = void, TExecutorParams = void>
   public async = (params: TExecutorParams) => {
     return this.auxiliary.getUnifiedPromise(() => this.executor(params));
   };
-
-  /**
-   * флаг загрузки данных
-   */
-  public get isLoading() {
-    return this.auxiliary.isLoading;
-  }
-
-  /**
-   * флаг обозначающий, что последний запрос был зафейлен
-   */
-  public get isError() {
-    return this.auxiliary.isError;
-  }
-
-  /**
-   * данные о последней ошибке
-   */
-  public get error() {
-    return this.auxiliary.error;
-  }
-
-  /**
-   * флаг обозначающий, что последний запрос был успешно завершен
-   */
-  public get isSuccess() {
-    return this.auxiliary.isSuccess;
-  }
-
-  public get isIdle() {
-    return this.auxiliary.isIdle;
-  }
 }

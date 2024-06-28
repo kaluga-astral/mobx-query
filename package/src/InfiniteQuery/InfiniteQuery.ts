@@ -1,8 +1,9 @@
-import { makeAutoObservable, when } from 'mobx';
+import { action, computed, makeObservable, when } from 'mobx';
 
 import type { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import type { DataStorage } from '../DataStorage';
+import { QueryContainer } from '../QueryContainer';
 
 export const DEFAULT_INFINITE_ITEMS_COUNT = 30;
 
@@ -45,13 +46,9 @@ export type InfiniteQueryParams<TResult, TError> = {
  * которые должны быть закешированы,
  */
 export class InfiniteQuery<TResult, TError = void>
+  extends QueryContainer<TError, AuxiliaryQuery<Array<TResult>, TError>>
   implements QueryBaseActions<Array<TResult>, TError>
 {
-  /**
-   * инстанс вспомогательного стора
-   */
-  private auxiliary = new AuxiliaryQuery<Array<TResult>, TError>();
-
   /**
    * счетчик отступа для инфинити запроса
    */
@@ -61,12 +58,6 @@ export class InfiniteQuery<TResult, TError = void>
    * количество запрашиваемых элементов
    */
   private readonly incrementCount: number;
-
-  /**
-   * исполнитель запроса, ожидается,
-   * что будет использоваться что-то из слоя sources, возвращающее массив данных
-   */
-  private executor: InfiniteExecutor<TResult>;
 
   /**
    * хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
@@ -94,7 +85,7 @@ export class InfiniteQuery<TResult, TError = void>
   private readonly defaultFetchPolicy?: FetchPolicy;
 
   constructor(
-    executor: InfiniteExecutor<TResult>,
+    private readonly executor: InfiniteExecutor<TResult>,
     {
       incrementCount = DEFAULT_INFINITE_ITEMS_COUNT,
       onError,
@@ -103,13 +94,22 @@ export class InfiniteQuery<TResult, TError = void>
       dataStorage,
     }: InfiniteQueryParams<TResult, TError>,
   ) {
+    super(new AuxiliaryQuery<Array<TResult>, TError>());
     this.storage = dataStorage;
     this.incrementCount = incrementCount;
-    this.executor = executor;
     this.defaultOnError = onError;
     this.enabledAutoFetch = enabledAutoFetch;
     this.defaultFetchPolicy = fetchPolicy;
-    makeAutoObservable(this);
+
+    makeObservable(this as ThisType<this>, {
+      data: computed,
+      infiniteExecutor: computed,
+      forceUpdate: action,
+      async: action,
+      sync: action,
+      fetchMore: action,
+      submitSuccess: action,
+    });
   }
 
   private get isNetworkOnly() {
@@ -274,37 +274,5 @@ export class InfiniteQuery<TResult, TError = void>
 
     // возвращаем имеющиеся данные
     return this.storage.data;
-  }
-
-  /**
-   * флаг загрузки данных
-   */
-  public get isLoading() {
-    return this.auxiliary.isLoading;
-  }
-
-  /**
-   * флаг обозначающий, что последний запрос был зафейлен
-   */
-  public get isError() {
-    return this.auxiliary.isError;
-  }
-
-  /**
-   * данные о последней ошибке
-   */
-  public get error() {
-    return this.auxiliary.error;
-  }
-
-  /**
-   * флаг обозначающий, что последний запрос был успешно завершен
-   */
-  public get isSuccess() {
-    return this.auxiliary.isSuccess;
-  }
-
-  public get isIdle() {
-    return this.auxiliary.isIdle;
   }
 }

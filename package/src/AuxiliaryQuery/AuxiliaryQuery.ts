@@ -41,14 +41,15 @@ export class AuxiliaryQuery<TResult, TError = void> {
   /**
    * единый промис, для устранения гонки запросов
    */
-  public unifiedPromise?: Promise<TResult>;
+  private unifiedPromise?: Promise<TResult>;
 
   /**
    * флаг, по которому реактивно определяется необходимость запуска инвалидации
    */
   public isInvalid: boolean = false;
+
   constructor() {
-    makeAutoObservable(this, { unifiedPromise: false });
+    makeAutoObservable(this as ThisType<this>, { unifiedPromise: false });
   }
 
   /**
@@ -112,6 +113,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
     this.isError = false;
     this.isSuccess = false;
   };
+
   /**
    * метод для инвалидации данных
    */
