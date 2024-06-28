@@ -4,6 +4,7 @@ import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import type { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import type { DataStorage } from '../DataStorage';
 import { QueryContainer } from '../QueryContainer';
+import { type StatusStorage } from '../StatusStorage';
 
 /**
  * исполнитель запроса
@@ -24,6 +25,10 @@ export type QueryParams<TResult, TError> = {
    * инстанс хранилища данных
    */
   dataStorage: DataStorage<TResult>;
+  /**
+   * инстанс хранилища статусов
+   */
+  statusStorage: StatusStorage<TError>;
 };
 
 /**
@@ -62,9 +67,10 @@ export class Query<TResult, TError = void>
       enabledAutoFetch,
       fetchPolicy,
       dataStorage,
+      statusStorage,
     }: QueryParams<TResult, TError>,
   ) {
-    super(new AuxiliaryQuery<TResult, TError>());
+    super(statusStorage, new AuxiliaryQuery<TResult, TError>(statusStorage));
     this.defaultOnError = onError;
     this.enabledAutoFetch = enabledAutoFetch;
     this.defaultFetchPolicy = fetchPolicy;

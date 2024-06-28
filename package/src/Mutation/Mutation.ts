@@ -3,6 +3,7 @@ import { action, makeObservable } from 'mobx';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import type { QueryBaseActions, Sync, SyncParams } from '../types';
 import { QueryContainer } from '../QueryContainer';
+import { StatusStorage } from '../StatusStorage';
 
 /**
  * исполнитель запроса
@@ -35,7 +36,9 @@ export class Mutation<TResult, TError = void, TExecutorParams = void>
     private readonly executor: MutationExecutor<TResult, TExecutorParams>,
     { onError }: MutationParams<TResult, TError> = {},
   ) {
-    super(new AuxiliaryQuery<TResult, TError>());
+    const statusStorage = new StatusStorage<TError>();
+
+    super(statusStorage, new AuxiliaryQuery<TResult, TError>(statusStorage));
     this.defaultOnError = onError;
     makeObservable(this, { async: action, sync: action });
   }

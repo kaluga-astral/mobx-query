@@ -1,4 +1,6 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { action, makeObservable, observable, runInAction } from 'mobx';
+
+import { type StatusStorage } from '../StatusStorage';
 
 /**
  * испольнитель запроса
@@ -14,26 +16,6 @@ type Executor<TResult> = () => Promise<TResult>;
  */
 export class AuxiliaryQuery<TResult, TError = void> {
   /**
-   * флаг обозначающий загрузку данных
-   */
-  public isLoading: boolean = false;
-
-  /**
-   * флаг обозначающий, что последний запрос был зафейлен
-   */
-  public isError: boolean = false;
-
-  /**
-   * данные о последней ошибке
-   */
-  public error?: TError = undefined;
-
-  /**
-   * флаг, обозначающий успешность завершения последнего запроса
-   */
-  public isSuccess = false;
-
-  /**
    * флаг, обозначающий простаивание, т.е. запроса еще не было
    */
   public isIdle = true;
@@ -48,8 +30,16 @@ export class AuxiliaryQuery<TResult, TError = void> {
    */
   public isInvalid: boolean = false;
 
-  constructor() {
-    makeAutoObservable(this as ThisType<this>, { unifiedPromise: false });
+  constructor(private readonly statusStorage: StatusStorage<TError>) {
+    makeObservable(this as ThisType<this>, {
+      getUnifiedPromise: action,
+      isIdle: observable,
+      isInvalid: observable,
+      submitSuccess: action,
+      submitError: action,
+      startLoading: action,
+      invalidate: action,
+    });
   }
 
   /**
@@ -78,7 +68,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
           this.unifiedPromise = undefined;
 
           runInAction(() => {
-            this.isLoading = false;
+            this.statusStorage.isLoading = false;
           });
         });
     }
@@ -90,8 +80,8 @@ export class AuxiliaryQuery<TResult, TError = void> {
    * обработчик успешного ответа
    */
   public submitSuccess = () => {
-    this.isError = false;
-    this.isSuccess = true;
+    this.statusStorage.isError = false;
+    this.statusStorage.isSuccess = true;
     this.isInvalid = false;
   };
 
@@ -99,9 +89,9 @@ export class AuxiliaryQuery<TResult, TError = void> {
    * обработчик ошибки
    */
   public submitError = (e: TError) => {
-    this.isSuccess = false;
-    this.isError = true;
-    this.error = e;
+    this.statusStorage.isSuccess = false;
+    this.statusStorage.isError = true;
+    this.statusStorage.error = e;
   };
 
   /**
@@ -109,9 +99,9 @@ export class AuxiliaryQuery<TResult, TError = void> {
    */
   public startLoading = () => {
     this.isIdle = false;
-    this.isLoading = true;
-    this.isError = false;
-    this.isSuccess = false;
+    this.statusStorage.isLoading = true;
+    this.statusStorage.isError = false;
+    this.statusStorage.isSuccess = false;
   };
 
   /**

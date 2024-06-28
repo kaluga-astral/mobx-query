@@ -1,10 +1,8 @@
 import { computed, makeObservable } from 'mobx';
 
-type Auxiliary<TError> = {
-  isLoading: boolean;
-  isError: boolean;
-  error?: TError;
-  isSuccess: boolean;
+import { type StatusStorage } from '../StatusStorage';
+
+type Auxiliary = {
   isIdle: boolean;
 };
 
@@ -12,11 +10,11 @@ type Auxiliary<TError> = {
  * Контейнер для бойлерплейт части,
  * позволяет не повторять в каждом наследуемом классе использование стандартных статусов
  */
-export abstract class QueryContainer<
-  TError,
-  TAuxiliary extends Auxiliary<TError>,
-> {
-  protected constructor(protected readonly auxiliary: TAuxiliary) {
+export abstract class QueryContainer<TError, TAuxiliary extends Auxiliary> {
+  protected constructor(
+    private readonly statusStorage: StatusStorage<TError>,
+    protected readonly auxiliary: TAuxiliary,
+  ) {
     makeObservable(this, {
       error: computed,
       isError: computed,
@@ -30,28 +28,28 @@ export abstract class QueryContainer<
    * флаг загрузки данных
    */
   public get isLoading() {
-    return this.auxiliary.isLoading;
+    return this.statusStorage.isLoading;
   }
 
   /**
    * флаг обозначающий, что последний запрос был зафейлен
    */
   public get isError() {
-    return this.auxiliary.isError;
+    return this.statusStorage.isError;
   }
 
   /**
    * данные о последней ошибке
    */
   public get error() {
-    return this.auxiliary.error;
+    return this.statusStorage.error;
   }
 
   /**
    * флаг обозначающий, что последний запрос был успешно завершен
    */
   public get isSuccess() {
-    return this.auxiliary.isSuccess;
+    return this.statusStorage.isSuccess;
   }
 
   /**

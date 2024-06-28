@@ -4,6 +4,7 @@ import type { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
 import type { DataStorage } from '../DataStorage';
 import { QueryContainer } from '../QueryContainer';
+import { type StatusStorage } from '../StatusStorage';
 
 export const DEFAULT_INFINITE_ITEMS_COUNT = 30;
 
@@ -34,6 +35,7 @@ export type InfiniteQueryParams<TResult, TError> = {
    * флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   enabledAutoFetch?: boolean;
+  statusStorage: StatusStorage<TError>;
   fetchPolicy?: FetchPolicy;
   /**
    * инстанс хранилища данных
@@ -92,9 +94,14 @@ export class InfiniteQuery<TResult, TError = void>
       enabledAutoFetch,
       fetchPolicy,
       dataStorage,
+      statusStorage,
     }: InfiniteQueryParams<TResult, TError>,
   ) {
-    super(new AuxiliaryQuery<Array<TResult>, TError>());
+    super(
+      statusStorage,
+      new AuxiliaryQuery<Array<TResult>, TError>(statusStorage),
+    );
+
     this.storage = dataStorage;
     this.incrementCount = incrementCount;
     this.defaultOnError = onError;

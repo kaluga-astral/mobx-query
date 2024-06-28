@@ -11,6 +11,7 @@ import {
 } from '../Mutation';
 import type { CacheKey, FetchPolicy } from '../types';
 import { DataStorageFactory } from '../DataStorage';
+import { StatusStorageFactory } from '../StatusStorage';
 
 /**
  * время, спустя которое, запись о query c network-only будет удалена
@@ -40,12 +41,12 @@ type MobxQueryParams = {
 
 type CreateQueryParams<TResult, TError> = Omit<
   QueryParams<TResult, TError>,
-  'dataStorage'
+  'dataStorage' | 'statusStorage'
 >;
 
 type CreateInfiniteQueryParams<TResult, TError> = Omit<
   InfiniteQueryParams<TResult, TError>,
-  'dataStorage'
+  'dataStorage' | 'statusStorage'
 >;
 
 /**
@@ -76,6 +77,11 @@ export class MobxQuery<TDefaultError = void> {
    * фабрика создания хранилищ данных для обычного Query
    */
   private queryDataStorageFactory = new DataStorageFactory();
+
+  /**
+   * фабрика создания хранилищ статусов между экземплярами Query и экземллярами Infinite Query.
+   */
+  private statusSrorageFactory = new StatusStorageFactory();
 
   /**
    * фабрика создания хранилищ данных для Infinite Query
@@ -203,7 +209,8 @@ export class MobxQuery<TDefaultError = void> {
           enabledAutoFetch:
             params?.enabledAutoFetch ?? this.defaultEnabledAutoFetch,
           fetchPolicy: fetchPolicy,
-          dataStorage: this.queryDataStorageFactory.getStorage(key),
+          dataStorage: this.queryDataStorageFactory.getStorage<TResult>(key),
+          statusStorage: this.statusSrorageFactory.getStorage<TError>(key),
         }),
       fetchPolicy,
     ) as Query<TResult, TError>;
@@ -228,7 +235,11 @@ export class MobxQuery<TDefaultError = void> {
             this.defaultErrorHandler) as OnError<TError>,
           enabledAutoFetch:
             params?.enabledAutoFetch ?? this.defaultEnabledAutoFetch,
-          dataStorage: this.infiniteQueryDataStorageFactory.getStorage(key),
+          dataStorage:
+            this.infiniteQueryDataStorageFactory.getStorage<Array<TResult>>(
+              key,
+            ),
+          statusStorage: this.statusSrorageFactory.getStorage<TError>(key),
           fetchPolicy: fetchPolicy,
         }),
       fetchPolicy,
