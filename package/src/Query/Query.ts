@@ -5,28 +5,28 @@ import type { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import type { DataStorage } from '../DataStorage';
 
 /**
- * @description исполнитель запроса
+ * исполнитель запроса
  */
 export type QueryExecutor<TResult> = () => Promise<TResult>;
 
 export type QueryParams<TResult, TError> = {
   /**
-   * @description обработчик ошибки, вызываемый по умолчанию
+   * обработчик ошибки, вызываемый по умолчанию
    */
   onError?: SyncParams<TResult, TError>['onError'];
   /**
-   * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   enabledAutoFetch?: boolean;
   fetchPolicy?: FetchPolicy;
   /**
-   * @description инстанс хранилища данных
+   * инстанс хранилища данных
    */
   dataStorage: DataStorage<TResult>;
 };
 
 /**
- * @description стор для работы с запросами,
+ * стор для работы с запросами,
  * которые должны быть закешированы,
  * но им не требуется усложнение в виде работы с фильтрами и инфинити запросами
  */
@@ -34,38 +34,33 @@ export class Query<TResult, TError = void>
   implements QueryBaseActions<TResult, TError, undefined>
 {
   /**
-   * @description инстанс вспомогательного стора
+   * инстанс вспомогательного стора
    */
   private auxiliary = new AuxiliaryQuery<TResult, TError>();
 
   /**
-   * @description флаг, по которому реактивно определяется необходимость запуска инвалидации
-   */
-  private isInvalid: boolean = false;
-
-  /**
-   * @description хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
+   * хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
    */
   private storage: DataStorage<TResult>;
 
   /**
-   * @description исполнитель запроса, ожидается,
+   * исполнитель запроса, ожидается,
    * что будет использоваться что-то из слоя sources
    */
   private executor: QueryExecutor<TResult>;
 
   /**
-   * @description обработчик ошибки, вызываемый по умолчанию
+   * обработчик ошибки, вызываемый по умолчанию
    */
   private defaultOnError?: SyncParams<TResult, TError>['onError'];
 
   /**
-   * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   private enabledAutoFetch?: boolean;
 
   /**
-   * @description стандартное поведение политики кеширования
+   * стандартное поведение политики кеширования
    */
   private readonly defaultFetchPolicy?: FetchPolicy;
 
@@ -91,35 +86,34 @@ export class Query<TResult, TError = void>
   }
 
   /**
-   * @description метод для инвалидации данных
+   * метод для инвалидации данных
    */
   public invalidate = () => {
-    this.isInvalid = true;
+    this.auxiliary.invalidate();
   };
 
   /**
-   * @description синхронный метод получения данных
+   * синхронный метод получения данных
    */
   public sync: Sync<TResult, TError, undefined> = (params) => {
     const isInstanceAllow = !(this.isLoading || this.isSuccess);
 
-    if (this.isNetworkOnly || this.isInvalid || isInstanceAllow) {
+    if (this.isNetworkOnly || this.auxiliary.isInvalid || isInstanceAllow) {
       this.proceedSync(params);
     }
   };
 
   /**
-   * @description обработчик успешного ответа
+   * обработчик успешного ответа
    */
   private submitSuccess = (resData: TResult) => {
     this.storage.setData(resData);
-    this.isInvalid = false;
 
     return resData;
   };
 
   /**
-   * @description форс метод для установки данных
+   * форс метод для установки данных
    */
   public forceUpdate = (data: TResult) => {
     this.auxiliary.submitSuccess();
@@ -127,7 +121,7 @@ export class Query<TResult, TError = void>
   };
 
   /**
-   * @description метод для переиспользования синхронной логики запроса
+   * метод для переиспользования синхронной логики запроса
    */
   private proceedSync: Sync<TResult, TError> = (options) => {
     const { onSuccess, onError } = options || {};
@@ -148,11 +142,11 @@ export class Query<TResult, TError = void>
   };
 
   /**
-   * @description асинхронный метод получения данных,
+   * асинхронный метод получения данных,
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = () => {
-    if (!this.isNetworkOnly && this.isSuccess && !this.isInvalid) {
+    if (!this.isNetworkOnly && this.isSuccess && !this.auxiliary.isInvalid) {
       return Promise.resolve(this.storage.data as TResult);
     }
 
@@ -162,7 +156,7 @@ export class Query<TResult, TError = void>
   };
 
   /**
-   * @description содержит реактивные данные
+   * содержит реактивные данные
    * благодаря mobx, при изменении isInvalid, свойство будет вычисляться заново,
    * следовательно, стриггерится условие невалидности,
    * и начнется запрос, в результате которого, данные обновятся
@@ -174,7 +168,7 @@ export class Query<TResult, TError = void>
       !this.isLoading &&
       !this.isError;
 
-    if (this.isInvalid || shouldSync) {
+    if (this.auxiliary.isInvalid || shouldSync) {
       // т.к. при вызове апдейта, изменяются флаги, на которые подписан data,
       // нужно вызывать этот экшн асинхронно
       when(() => true, this.proceedSync);
@@ -185,28 +179,28 @@ export class Query<TResult, TError = void>
   }
 
   /**
-   * @description флаг загрузки данных
+   * флаг загрузки данных
    */
   public get isLoading() {
     return this.auxiliary.isLoading;
   }
 
   /**
-   * @description флаг обозначающий, что последний запрос был зафейлен
+   * флаг обозначающий, что последний запрос был зафейлен
    */
   public get isError() {
     return this.auxiliary.isError;
   }
 
   /**
-   * @description данные о последней ошибке
+   * данные о последней ошибке
    */
   public get error() {
     return this.auxiliary.error;
   }
 
   /**
-   * @description флаг обозначающий, что последний запрос был успешно завершен
+   * флаг обозначающий, что последний запрос был успешно завершен
    */
   public get isSuccess() {
     return this.auxiliary.isSuccess;

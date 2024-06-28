@@ -1,12 +1,12 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 
 /**
- * @description испольнитель запроса
+ * испольнитель запроса
  */
 type Executor<TResult> = () => Promise<TResult>;
 
 /**
- * @description вспомогательное хранилище данных, для композиции в Query сторах,
+ * вспомогательное хранилище данных, для композиции в Query сторах,
  * содержащее флаги загрузки и ошибки,
  * колбэки на успешный запрос и на ошибку,
  * данные последней ошибки,
@@ -14,22 +14,22 @@ type Executor<TResult> = () => Promise<TResult>;
  */
 export class AuxiliaryQuery<TResult, TError = void> {
   /**
-   * @description флаг обозначающий загрузку данных
+   * флаг обозначающий загрузку данных
    */
   public isLoading: boolean = false;
 
   /**
-   * @description флаг обозначающий, что последний запрос был зафейлен
+   * флаг обозначающий, что последний запрос был зафейлен
    */
   public isError: boolean = false;
 
   /**
-   * @description данные о последней ошибке
+   * данные о последней ошибке
    */
   public error?: TError = undefined;
 
   /**
-   * @description флаг, обозначающий успешность завершения последнего запроса
+   * флаг, обозначающий успешность завершения последнего запроса
    */
   public isSuccess = false;
 
@@ -39,16 +39,20 @@ export class AuxiliaryQuery<TResult, TError = void> {
   public isIdle = true;
 
   /**
-   * @description единый промис, для устранения гонки запросов
+   * единый промис, для устранения гонки запросов
    */
   public unifiedPromise?: Promise<TResult>;
 
+  /**
+   * флаг, по которому реактивно определяется необходимость запуска инвалидации
+   */
+  public isInvalid: boolean = false;
   constructor() {
     makeAutoObservable(this, { unifiedPromise: false });
   }
 
   /**
-   * @description метод ответственный за создание единого промиса,
+   * метод ответственный за создание единого промиса,
    * для устранения гонки запросов
    */
   public getUnifiedPromise = (executor: Executor<TResult>) => {
@@ -82,15 +86,16 @@ export class AuxiliaryQuery<TResult, TError = void> {
   };
 
   /**
-   * @description обработчик успешного ответа
+   * обработчик успешного ответа
    */
   public submitSuccess = () => {
     this.isError = false;
     this.isSuccess = true;
+    this.isInvalid = false;
   };
 
   /**
-   * @description обработчик ошибки
+   * обработчик ошибки
    */
   public submitError = (e: TError) => {
     this.isSuccess = false;
@@ -99,12 +104,18 @@ export class AuxiliaryQuery<TResult, TError = void> {
   };
 
   /**
-   * @description метод, вызываемый в самом начале запроса, чтобы сбросить флаги в соответствующее значение
+   * метод, вызываемый в самом начале запроса, чтобы сбросить флаги в соответствующее значение
    */
   public startLoading = () => {
     this.isIdle = false;
     this.isLoading = true;
     this.isError = false;
     this.isSuccess = false;
+  };
+  /**
+   * метод для инвалидации данных
+   */
+  public invalidate = () => {
+    this.isInvalid = true;
   };
 }

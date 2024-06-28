@@ -12,7 +12,7 @@ export type InfiniteParams = {
 };
 
 /**
- * @description исполнитель запроса, ожидается,
+ * исполнитель запроса, ожидается,
  * что будет использоваться что-то возвращающее массив данных
  */
 export type InfiniteExecutor<TResult> = (
@@ -21,80 +21,75 @@ export type InfiniteExecutor<TResult> = (
 
 export type InfiniteQueryParams<TResult, TError> = {
   /**
-   * @description количество запрашиваемых элементов
+   * количество запрашиваемых элементов
    * @default 30
    */
   incrementCount?: number;
   /**
-   * @description обработчик ошибки, вызываемый по умолчанию
+   * обработчик ошибки, вызываемый по умолчанию
    */
   onError?: SyncParams<TResult, TError>['onError'];
   /**
-   * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   enabledAutoFetch?: boolean;
   fetchPolicy?: FetchPolicy;
   /**
-   * @description инстанс хранилища данных
+   * инстанс хранилища данных
    */
   dataStorage: DataStorage<TResult[]>;
 };
 
 /**
- * @description стор для работы с инфинити запросами,
+ * стор для работы с инфинити запросами,
  * которые должны быть закешированы,
  */
 export class InfiniteQuery<TResult, TError = void>
   implements QueryBaseActions<Array<TResult>, TError>
 {
   /**
-   * @description инстанс вспомогательного стора
+   * инстанс вспомогательного стора
    */
   private auxiliary = new AuxiliaryQuery<Array<TResult>, TError>();
 
   /**
-   * @description счетчик отступа для инфинити запроса
+   * счетчик отступа для инфинити запроса
    */
   private offset: number = 0;
 
   /**
-   * @description количество запрашиваемых элементов
+   * количество запрашиваемых элементов
    */
   private readonly incrementCount: number;
 
   /**
-   * @description исполнитель запроса, ожидается,
+   * исполнитель запроса, ожидается,
    * что будет использоваться что-то из слоя sources, возвращающее массив данных
    */
   private executor: InfiniteExecutor<TResult>;
 
   /**
-   * @description хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
+   * хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
    */
   private storage: DataStorage<TResult[]>;
 
   /**
-   * @description флаг того, что мы достигли предела запрашиваемых элементов
+   * флаг того, что мы достигли предела запрашиваемых элементов
    */
   public isEndReached: boolean = false;
 
   /**
-   * @description флаг необходимости выполнить обновления данных
-   */
-  private isInvalid: boolean = false;
-
-  /**
-   * @description обработчик ошибки, вызываемый по умолчанию
+   * обработчик ошибки, вызываемый по умолчанию
    */
   private defaultOnError?: SyncParams<TResult, TError>['onError'];
 
   /**
-   * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   private enabledAutoFetch?: boolean;
 
   /**
-   * @description стандартное поведение политики кеширования
+   * стандартное поведение политики кеширования
    */
   private readonly defaultFetchPolicy?: FetchPolicy;
 
@@ -122,7 +117,7 @@ export class InfiniteQuery<TResult, TError = void>
   }
 
   /**
-   * @description обработчик успешного запроса, проверяет что мы достигли предела
+   * обработчик успешного запроса, проверяет что мы достигли предела
    */
   private submitSuccess = (
     result: TResult[],
@@ -137,8 +132,6 @@ export class InfiniteQuery<TResult, TError = void>
       this.storage.setData(result);
     }
 
-    this.isInvalid = false;
-
     // убеждаемся что результат запроса действительно массив,
     // и если количество элементов в ответе меньше,
     // чем запрашивалось, значит у бэка их больше нет,
@@ -152,7 +145,7 @@ export class InfiniteQuery<TResult, TError = void>
   };
 
   /**
-   * @description форс метод для установки данных
+   * форс метод для установки данных
    */
   public forceUpdate = (data: TResult[]) => {
     this.offset = 0;
@@ -162,7 +155,7 @@ export class InfiniteQuery<TResult, TError = void>
   };
 
   /**
-   * @description метод для обогащения параметров текущими значениями для инфинити
+   * метод для обогащения параметров текущими значениями для инфинити
    */
   private get infiniteExecutor(): () => Promise<Array<TResult>> {
     return () =>
@@ -173,14 +166,14 @@ export class InfiniteQuery<TResult, TError = void>
   }
 
   /**
-   * @description метод для инвалидации данных
+   * метод для инвалидации данных
    */
   public invalidate = () => {
-    this.isInvalid = true;
+    this.auxiliary.invalidate();
   };
 
   /**
-   * @description метод для запроса следующего набора данных
+   * метод для запроса следующего набора данных
    */
   public fetchMore = () => {
     // если мы еще не достигли предела
@@ -198,18 +191,18 @@ export class InfiniteQuery<TResult, TError = void>
   };
 
   /**
-   * @description синхронный метод получения данных
+   * синхронный метод получения данных
    */
   public sync: Sync<Array<TResult>, TError> = (params) => {
     const isInstanceAllow = !(this.isLoading || this.isSuccess);
 
-    if (this.isNetworkOnly || this.isInvalid || isInstanceAllow) {
+    if (this.isNetworkOnly || this.auxiliary.isInvalid || isInstanceAllow) {
       this.proceedSync(params);
     }
   };
 
   /**
-   * @description метод для переиспользования синхронной логики запроса
+   * метод для переиспользования синхронной логики запроса
    */
   private proceedSync: Sync<Array<TResult>, TError> = ({
     onSuccess,
@@ -233,13 +226,13 @@ export class InfiniteQuery<TResult, TError = void>
   };
 
   /**
-   * @description aсинхронный метод получения данных,
+   * aсинхронный метод получения данных,
    * подходит для изменения параметров запроса(фильтров),
    * при котором будет сброшен offset,
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = () => {
-    if (!this.isNetworkOnly && this.isSuccess && !this.isInvalid) {
+    if (!this.isNetworkOnly && this.isSuccess && !this.auxiliary.isInvalid) {
       return Promise.resolve(this.storage.data!);
     }
 
@@ -261,7 +254,7 @@ export class InfiniteQuery<TResult, TError = void>
   };
 
   /**
-   * @description вычисляемое свойство, содержащее реактивные данные,
+   * вычисляемое свойство, содержащее реактивные данные,
    * благодаря mobx, при изменении isInvalid, свойство будет вычисляться заново,
    * следовательно, стриггерится условие невалидности,
    * и начнется запрос, в результате которого, данные обновятся
@@ -273,7 +266,7 @@ export class InfiniteQuery<TResult, TError = void>
       !this.isLoading &&
       !this.isError;
 
-    if (this.isInvalid || shouldSync) {
+    if (this.auxiliary.isInvalid || shouldSync) {
       // т.к. при вызове апдейта, изменяются флаги, на которые подписан data,
       // нужно вызывать этот экшн асинхронно
       when(() => true, this.proceedSync);
@@ -284,28 +277,28 @@ export class InfiniteQuery<TResult, TError = void>
   }
 
   /**
-   * @description флаг загрузки данных
+   * флаг загрузки данных
    */
   public get isLoading() {
     return this.auxiliary.isLoading;
   }
 
   /**
-   * @description флаг обозначающий, что последний запрос был зафейлен
+   * флаг обозначающий, что последний запрос был зафейлен
    */
   public get isError() {
     return this.auxiliary.isError;
   }
 
   /**
-   * @description данные о последней ошибке
+   * данные о последней ошибке
    */
   public get error() {
     return this.auxiliary.error;
   }
 
   /**
-   * @description флаг обозначающий, что последний запрос был успешно завершен
+   * флаг обозначающий, что последний запрос был успешно завершен
    */
   public get isSuccess() {
     return this.auxiliary.isSuccess;

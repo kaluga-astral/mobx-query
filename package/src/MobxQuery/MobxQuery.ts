@@ -13,18 +13,18 @@ import type { CacheKey, FetchPolicy } from '../types';
 import { DataStorageFactory } from '../DataStorage';
 
 /**
- * @description время, спустя которое, запись о query c network-only будет удалена
+ * время, спустя которое, запись о query c network-only будет удалена
  */
 const DEFAULT_TIME_TO_CLEAN = 100;
 
 /**
- * @description стандартный обработчик ошибки запроса,
+ * стандартный обработчик ошибки запроса,
  * будет вызван, если при вызове sync не был передан отдельный onError параметр
  */
 type OnError<TError = unknown> = (error: TError) => void;
 
 /**
- * @description хэш ключа
+ * хэш ключа
  */
 type KeyHash = string;
 
@@ -32,7 +32,7 @@ type MobxQueryParams = {
   fetchPolicy?: FetchPolicy;
   onError?: OnError;
   /**
-   * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
    * @default false
    */
   enabledAutoFetch?: boolean;
@@ -49,23 +49,23 @@ type CreateInfiniteQueryParams<TResult, TError> = Omit<
 >;
 
 /**
- * @description внутриний тип кешируемого стора
+ * внутриний тип кешируемого стора
  */
 type CachedQueryStore<TResult, TError> =
   | Query<TResult, TError>
   | InfiniteQuery<TResult, TError>;
 
 /**
- * @description Сервис, позволяющий кэшировать данные.
+ * Сервис, позволяющий кэшировать данные.
  */
 export class MobxQuery<TDefaultError = void> {
   /**
-   * @description объект соответствия хешей ключей и их значений
+   * объект соответствия хешей ключей и их значений
    */
   private keys: Record<KeyHash, CacheKey[]> = {};
 
   /**
-   * @description Map соответствия хешей ключей к запомненным сторам
+   * Map соответствия хешей ключей к запомненным сторам
    */
   private cacheableStores = new Map<
     KeyHash,
@@ -73,27 +73,27 @@ export class MobxQuery<TDefaultError = void> {
   >();
 
   /**
-   * @description фабрика создания хранилищ данных для обычного Query
+   * фабрика создания хранилищ данных для обычного Query
    */
   private queryDataStorageFactory = new DataStorageFactory();
 
   /**
-   * @description фабрика создания хранилищ данных для Infinite Query
+   * фабрика создания хранилищ данных для Infinite Query
    */
   private infiniteQueryDataStorageFactory = new DataStorageFactory();
 
   /**
-   * @description стандартный обработчик ошибок, будет использован, если не передан другой
+   * стандартный обработчик ошибок, будет использован, если не передан другой
    */
   private readonly defaultErrorHandler?: OnError;
 
   /**
-   * @description стандартное поведение политики кеширования
+   * стандартное поведение политики кеширования
    */
   private readonly defaultFetchPolicy: FetchPolicy;
 
   /**
-   * @description флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
    * @default false
    */
   private readonly defaultEnabledAutoFetch: boolean;
@@ -111,7 +111,7 @@ export class MobxQuery<TDefaultError = void> {
   }
 
   /**
-   * @description метод для инвалидации по списку ключей,
+   * метод для инвалидации по списку ключей,
    * предполагается использование из домена
    */
   public invalidate = (keysParts: CacheKey[]) => {
@@ -132,7 +132,7 @@ export class MobxQuery<TDefaultError = void> {
   };
 
   /**
-   * @description метод инвалидации всех query
+   * метод инвалидации всех query
    */
   public invalidateQueries = () => {
     [...this.cacheableStores.entries()].forEach(([, store]) => {
@@ -141,7 +141,7 @@ export class MobxQuery<TDefaultError = void> {
   };
 
   /**
-   * @description метод, который занимается проверкой наличия стора по ключу,
+   * метод, который занимается проверкой наличия стора по ключу,
    * и если нет, создает новый, добавляет его к себе в память, и возвращает его пользователю
    */
   private getCachedQuery = <TResult, TError>(
@@ -184,7 +184,7 @@ export class MobxQuery<TDefaultError = void> {
   };
 
   /**
-   * @description метод создания стора, кешируется
+   * метод создания стора, кешируется
    */
   createQuery = <TResult, TError = TDefaultError>(
     key: CacheKey[],
@@ -210,7 +210,7 @@ export class MobxQuery<TDefaultError = void> {
   };
 
   /**
-   * @description метод создания инфинит стора, кешируется
+   * метод создания инфинит стора, кешируется
    */
   createInfiniteQuery = <TResult, TError = TDefaultError>(
     key: CacheKey[],
@@ -236,7 +236,7 @@ export class MobxQuery<TDefaultError = void> {
   };
 
   /**
-   * @description метод создания мутации, не кешируется
+   * метод создания мутации, не кешируется
    */
   createMutation = <TResult, TError = TDefaultError, TExecutorParams = void>(
     executor: MutationExecutor<TResult, TExecutorParams>,
