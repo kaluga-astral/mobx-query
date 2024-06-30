@@ -21,7 +21,11 @@ export type InfiniteExecutor<TResult> = (
   params: InfiniteParams,
 ) => Promise<Array<TResult>>;
 
-export type InfiniteQueryParams<TResult, TError> = {
+export type InfiniteQueryParams<
+  TResult,
+  TError,
+  TIsBackground extends boolean = false,
+> = {
   /**
    * количество запрашиваемых элементов
    * @default 30
@@ -35,20 +39,37 @@ export type InfiniteQueryParams<TResult, TError> = {
    * флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   enabledAutoFetch?: boolean;
+  /**
+   * инстанс хранилища основных статусов
+   */
   statusStorage: StatusStorage<TError>;
   fetchPolicy?: FetchPolicy;
   /**
    * инстанс хранилища данных
    */
   dataStorage: DataStorage<TResult[]>;
+  /**
+   * инстанс хранилища фоновых статусов
+   */
+  backgroundStatusStorage?: TIsBackground extends true
+    ? StatusStorage<TError>
+    : null | undefined;
 };
 
 /**
  * стор для работы с инфинити запросами,
  * которые должны быть закешированы,
  */
-export class InfiniteQuery<TResult, TError = void>
-  extends QueryContainer<TError, AuxiliaryQuery<Array<TResult>, TError>>
+export class InfiniteQuery<
+    TResult,
+    TError = void,
+    TIsBackground extends boolean = false,
+  >
+  extends QueryContainer<
+    TError,
+    AuxiliaryQuery<Array<TResult>, TError>,
+    TIsBackground
+  >
   implements QueryBaseActions<Array<TResult>, TError>
 {
   /**
@@ -95,11 +116,16 @@ export class InfiniteQuery<TResult, TError = void>
       fetchPolicy,
       dataStorage,
       statusStorage,
-    }: InfiniteQueryParams<TResult, TError>,
+      backgroundStatusStorage = null,
+    }: InfiniteQueryParams<TResult, TError, TIsBackground>,
   ) {
     super(
       statusStorage,
-      new AuxiliaryQuery<Array<TResult>, TError>(statusStorage),
+      backgroundStatusStorage,
+      new AuxiliaryQuery<Array<TResult>, TError>(
+        statusStorage,
+        backgroundStatusStorage,
+      ),
     );
 
     this.storage = dataStorage;

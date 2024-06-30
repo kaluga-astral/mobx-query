@@ -11,7 +11,11 @@ import { type StatusStorage } from '../StatusStorage';
  */
 export type QueryExecutor<TResult> = () => Promise<TResult>;
 
-export type QueryParams<TResult, TError> = {
+export type QueryParams<
+  TResult,
+  TError,
+  TIsBackground extends boolean = false,
+> = {
   /**
    * обработчик ошибки, вызываемый по умолчанию
    */
@@ -26,9 +30,15 @@ export type QueryParams<TResult, TError> = {
    */
   dataStorage: DataStorage<TResult>;
   /**
-   * инстанс хранилища статусов
+   * инстанс хранилища основных статусов
    */
   statusStorage: StatusStorage<TError>;
+  /**
+   * инстанс хранилища фоновых статусов
+   */
+  backgroundStatusStorage?: TIsBackground extends true
+    ? StatusStorage<TError>
+    : null | undefined;
 };
 
 /**
@@ -36,8 +46,12 @@ export type QueryParams<TResult, TError> = {
  * которые должны быть закешированы,
  * но им не требуется усложнение в виде работы с фильтрами и инфинити запросами
  */
-export class Query<TResult, TError = void>
-  extends QueryContainer<TError, AuxiliaryQuery<TResult, TError>>
+export class Query<
+    TResult,
+    TError = void,
+    TIsBackground extends boolean = false,
+  >
+  extends QueryContainer<TError, AuxiliaryQuery<TResult, TError>, TIsBackground>
   implements QueryBaseActions<TResult, TError, undefined>
 {
   /**
@@ -68,9 +82,18 @@ export class Query<TResult, TError = void>
       fetchPolicy,
       dataStorage,
       statusStorage,
-    }: QueryParams<TResult, TError>,
+      backgroundStatusStorage = null,
+    }: QueryParams<TResult, TError, TIsBackground>,
   ) {
-    super(statusStorage, new AuxiliaryQuery<TResult, TError>(statusStorage));
+    super(
+      statusStorage,
+      backgroundStatusStorage,
+      new AuxiliaryQuery<TResult, TError>(
+        statusStorage,
+        backgroundStatusStorage,
+      ),
+    );
+
     this.defaultOnError = onError;
     this.enabledAutoFetch = enabledAutoFetch;
     this.defaultFetchPolicy = fetchPolicy;

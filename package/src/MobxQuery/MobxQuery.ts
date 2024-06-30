@@ -11,7 +11,7 @@ import {
 } from '../Mutation';
 import type { CacheKey, FetchPolicy } from '../types';
 import { DataStorageFactory } from '../DataStorage';
-import { StatusStorageFactory } from '../StatusStorage';
+import { type StatusStorage, StatusStorageFactory } from '../StatusStorage';
 
 /**
  * время, спустя которое, запись о query c network-only будет удалена
@@ -39,22 +39,36 @@ type MobxQueryParams = {
   enabledAutoFetch?: boolean;
 };
 
-type CreateQueryParams<TResult, TError> = Omit<
-  QueryParams<TResult, TError>,
-  'dataStorage' | 'statusStorage'
->;
+type CreateQueryParams<TResult, TError, TIsBackground extends boolean> = Omit<
+  QueryParams<TResult, TError, TIsBackground>,
+  'dataStorage' | 'statusStorage' | 'backgroundStatusStorage'
+> & {
+  /**
+   * режим фонового обновления
+   */
+  isBackground?: TIsBackground;
+};
 
-type CreateInfiniteQueryParams<TResult, TError> = Omit<
-  InfiniteQueryParams<TResult, TError>,
-  'dataStorage' | 'statusStorage'
->;
+type CreateInfiniteQueryParams<
+  TResult,
+  TError,
+  TIsBackground extends boolean,
+> = Omit<
+  InfiniteQueryParams<TResult, TError, TIsBackground>,
+  'dataStorage' | 'statusStorage' | 'backgroundStatusStorage'
+> & {
+  /**
+   * режим фонового обновления
+   */
+  isBackground?: TIsBackground;
+};
 
 /**
  * внутриний тип кешируемого стора
  */
-type CachedQueryStore<TResult, TError> =
-  | Query<TResult, TError>
-  | InfiniteQuery<TResult, TError>;
+type CachedQueryStore<TResult, TError, TIsBackground extends boolean> =
+  | Query<TResult, TError, TIsBackground>
+  | InfiniteQuery<TResult, TError, TIsBackground>;
 
 /**
  * Сервис, позволяющий кэшировать данные.
@@ -70,7 +84,7 @@ export class MobxQuery<TDefaultError = void> {
    */
   private cacheableStores = new Map<
     KeyHash,
-    CachedQueryStore<unknown, unknown>
+    CachedQueryStore<unknown, unknown, false>
   >();
 
   /**
@@ -81,7 +95,7 @@ export class MobxQuery<TDefaultError = void> {
   /**
    * фабрика создания хранилищ статусов между экземплярами Query и экземллярами Infinite Query.
    */
-  private statusSrorageFactory = new StatusStorageFactory();
+  private statusStorageFactory = new StatusStorageFactory();
 
   /**
    * фабрика создания хранилищ данных для Infinite Query
@@ -150,9 +164,9 @@ export class MobxQuery<TDefaultError = void> {
    * метод, который занимается проверкой наличия стора по ключу,
    * и если нет, создает новый, добавляет его к себе в память, и возвращает его пользователю
    */
-  private getCachedQuery = <TResult, TError>(
+  private getCachedQuery = <TResult, TError, TIsBackground extends boolean>(
     key: CacheKey[],
-    createStore: () => CachedQueryStore<TResult, TError>,
+    createStore: () => CachedQueryStore<TResult, TError, TIsBackground>,
     fetchPolicy: FetchPolicy,
   ) => {
     // создаем хэш ключа с добавляем к ключу значения fetchPolicy,
@@ -167,7 +181,7 @@ export class MobxQuery<TDefaultError = void> {
 
     this.cacheableStores.set(
       keyHash,
-      store as CachedQueryStore<unknown, unknown>,
+      store as CachedQueryStore<unknown, unknown, false>,
     );
 
     this.keys[keyHash] = key;
@@ -189,13 +203,25 @@ export class MobxQuery<TDefaultError = void> {
     return store;
   };
 
+  private getBackgroundStatusStorage = <TError, TIsBackground extends boolean>(
+    key: CacheKey[],
+    hasBackground: TIsBackground,
+  ) =>
+    (hasBackground
+      ? this.statusStorageFactory.getStorage([...key, true])
+      : null) as TIsBackground extends true ? StatusStorage<TError> : null;
+
   /**
    * метод создания стора, кешируется
    */
-  createQuery = <TResult, TError = TDefaultError>(
+  createQuery = <
+    TResult,
+    TError = TDefaultError,
+    TIsBackground extends boolean = false,
+  >(
     key: CacheKey[],
     executor: QueryExecutor<TResult>,
-    params?: CreateQueryParams<TResult, TError>,
+    params?: CreateQueryParams<TResult, TError, TIsBackground>,
   ) => {
     const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy;
 
@@ -210,19 +236,27 @@ export class MobxQuery<TDefaultError = void> {
             params?.enabledAutoFetch ?? this.defaultEnabledAutoFetch,
           fetchPolicy: fetchPolicy,
           dataStorage: this.queryDataStorageFactory.getStorage<TResult>(key),
-          statusStorage: this.statusSrorageFactory.getStorage<TError>(key),
+          statusStorage: this.statusStorageFactory.getStorage<TError>(key),
+          backgroundStatusStorage: this.getBackgroundStatusStorage<
+            TError,
+            TIsBackground
+          >(key, Boolean(params?.isBackground) as TIsBackground),
         }),
       fetchPolicy,
-    ) as Query<TResult, TError>;
+    ) as Query<TResult, TError, TIsBackground>;
   };
 
   /**
    * метод создания инфинит стора, кешируется
    */
-  createInfiniteQuery = <TResult, TError = TDefaultError>(
+  createInfiniteQuery = <
+    TResult,
+    TError = TDefaultError,
+    TIsBackground extends boolean = false,
+  >(
     key: CacheKey[],
     executor: InfiniteExecutor<TResult>,
-    params?: CreateInfiniteQueryParams<TResult, TError>,
+    params?: CreateInfiniteQueryParams<TResult, TError, TIsBackground>,
   ) => {
     const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy || '';
 
@@ -239,11 +273,15 @@ export class MobxQuery<TDefaultError = void> {
             this.infiniteQueryDataStorageFactory.getStorage<Array<TResult>>(
               key,
             ),
-          statusStorage: this.statusSrorageFactory.getStorage<TError>(key),
+          statusStorage: this.statusStorageFactory.getStorage<TError>(key),
           fetchPolicy: fetchPolicy,
+          backgroundStatusStorage: this.getBackgroundStatusStorage<
+            TError,
+            TIsBackground
+          >(key, Boolean(params?.isBackground) as TIsBackground),
         }),
       fetchPolicy,
-    ) as InfiniteQuery<TResult, TError>;
+    ) as InfiniteQuery<TResult, TError, TIsBackground>;
   };
 
   /**

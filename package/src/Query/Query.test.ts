@@ -7,7 +7,7 @@ import { StatusStorage } from '../StatusStorage';
 import { Query } from './Query';
 
 describe('Query', () => {
-  const getDataStorage = () => new DataStorage();
+  const getDataStorage = <TData = unknown>() => new DataStorage<TData>();
   const getStatusStorage = () => new StatusStorage();
 
   describe('При начальном состоянии', () => {
@@ -313,6 +313,192 @@ describe('Query', () => {
 
     await queryA.async();
     expect(queryB.isSuccess).toBeTruthy();
+  });
+
+  it('Статусы не синхронизируются при использовании разных statusStorage', async () => {
+    const unifiedDataStorage = getDataStorage();
+
+    const queryA = new Query(() => Promise.resolve('foo'), {
+      dataStorage: unifiedDataStorage,
+      statusStorage: getStatusStorage(),
+      backgroundStatusStorage: null,
+    });
+
+    const queryB = new Query(() => Promise.resolve('bar'), {
+      dataStorage: unifiedDataStorage,
+      statusStorage: getStatusStorage(),
+      backgroundStatusStorage: null,
+    });
+
+    await queryA.async();
+    expect(queryB.isSuccess).toBeFalsy();
+  });
+
+  describe('При использовании при использовании backgroundStatusStorage', () => {
+    const buildQuery = () =>
+      new Query<string, unknown, true>(() => Promise.resolve('foo'), {
+        dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
+        backgroundStatusStorage: getStatusStorage(),
+      });
+
+    it('Статус isSuccess == true при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.isSuccess).toBeTruthy();
+    });
+
+    it('Статус isError == false при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.isError).toBeFalsy();
+    });
+
+    it('Статус error == undefined при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.error).toBeUndefined();
+    });
+
+    it('Статус isLoading == true при запуске первого запроса', async () => {
+      const query = buildQuery();
+
+      query.async();
+      expect(query.isLoading).toBeTruthy();
+    });
+
+    it('Статус background.isSuccess == false при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.background.isSuccess).toBeFalsy();
+    });
+
+    it('Статус background.isError == false при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.background.isError).toBeFalsy();
+    });
+
+    it('Статус background.isLoading == false при старте первого запроса', async () => {
+      const query = buildQuery();
+
+      query.async();
+      expect(query.background.isLoading).toBeFalsy();
+    });
+
+    it('Статус background.error == undefined при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.background.error).toBeUndefined();
+    });
+
+    it('Статус isLoading не изменяется при повторных запросах', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      query.invalidate();
+      query.async();
+      expect(query.isLoading).toBeFalsy();
+    });
+
+    it('Статус background.isLoading изменяется при повторных запросах', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      query.invalidate();
+      query.async();
+      expect(query.background.isLoading).toBeTruthy();
+    });
+
+    it('Статус background.isSuccess == true при повторном успешном запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async();
+      expect(query.background.isSuccess).toBeTruthy();
+    });
+
+    const buildSuccessAndFailQuery = () => {
+      let count = 0;
+
+      return new Query<string, unknown, true>(
+        () => {
+          count++;
+
+          if (count <= 1) {
+            return Promise.resolve('foo');
+          }
+
+          return Promise.reject('bar');
+        },
+        {
+          dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
+          backgroundStatusStorage: getStatusStorage(),
+        },
+      );
+    };
+
+    it('Статус isSuccess == true при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.isSuccess).toBeTruthy();
+    });
+
+    it('Статус isError == false при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.isError).toBeFalsy();
+    });
+
+    it('Статус error == undefined при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.error).toBeUndefined();
+    });
+
+    it('Статус background.isSuccess == false при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.background.isSuccess).toBeFalsy();
+    });
+
+    it('Статус background.isError == true при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.background.isError).toBeTruthy();
+    });
+
+    it('Статус background.error содержит ошибку при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.background.error).toBe('bar');
+    });
   });
 
   describe('При использовании политики network-only', () => {

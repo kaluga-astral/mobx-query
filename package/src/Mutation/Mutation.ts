@@ -24,7 +24,7 @@ export type MutationParams<TResult, TError> = {
  * пример - POST запросы
  */
 export class Mutation<TResult, TError = void, TExecutorParams = void>
-  extends QueryContainer<TError, AuxiliaryQuery<TResult, TError>>
+  extends QueryContainer<TError, AuxiliaryQuery<TResult, TError>, false>
   implements QueryBaseActions<TResult, TError, TExecutorParams>
 {
   /**
@@ -38,7 +38,12 @@ export class Mutation<TResult, TError = void, TExecutorParams = void>
   ) {
     const statusStorage = new StatusStorage<TError>();
 
-    super(statusStorage, new AuxiliaryQuery<TResult, TError>(statusStorage));
+    super(
+      statusStorage,
+      null,
+      new AuxiliaryQuery<TResult, TError>(statusStorage, null),
+    );
+
     this.defaultOnError = onError;
     makeObservable(this, { async: action, sync: action });
   }
