@@ -1,7 +1,6 @@
 import { makeObservable, observable } from 'mobx';
 
 import { StorageFactory } from '../StorageFactory';
-import { type CacheKey } from '../types';
 
 export class StatusStorage<TError> {
   constructor() {
@@ -39,7 +38,7 @@ export class StatusStorageFactory extends StorageFactory<StatusStorage<void>> {
     super(() => new StatusStorage());
   }
 
-  public getStorage = <TError>(key: CacheKey[]) => {
-    return this.getInternalStorage(key) as StatusStorage<TError>;
+  public getStorage = <TError>(keyHash: string) => {
+    return this.getInternalStorage(keyHash) as StatusStorage<TError>;
   };
 }

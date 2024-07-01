@@ -1,6 +1,5 @@
 import { makeAutoObservable } from 'mobx';
 
-import type { CacheKey } from '../types';
 import { StorageFactory } from '../StorageFactory';
 
 /**
@@ -49,7 +48,7 @@ export class DataStorageFactory extends StorageFactory<DataStorage<unknown>> {
   /**
    * фабричный метод получения/создания инстанса хранилища по ключу
    */
-  public getStorage = <TData>(key: CacheKey[]) => {
-    return this.getInternalStorage(key) as DataStorage<TData>;
+  public getStorage = <TData>(keyHash: string) => {
+    return this.getInternalStorage(keyHash) as DataStorage<TData>;
   };
 }

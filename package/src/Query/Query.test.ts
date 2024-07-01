@@ -82,6 +82,18 @@ describe('Query', () => {
       expect(query.isSuccess).toBeTruthy();
       expect(query.isError).toBeFalsy();
     });
+
+    it('Вызывается переданный submitValidity', async () => {
+      const spy = vi.fn();
+      const query = new Query(() => Promise.resolve('foo'), {
+        dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
+        submitValidity: spy,
+      });
+
+      await query.async();
+      expect(spy).toBeCalled();
+    });
   });
 
   describe('При провальном запросе', () => {

@@ -39,6 +39,10 @@ export type QueryParams<
   backgroundStatusStorage?: TIsBackground extends true
     ? StatusStorage<TError>
     : null | undefined;
+  /**
+   * колбэк, вызываемый при успешном завершении запроса, подразумевается использование, для подтверждения валидности данных, чтобы квери не был удален из памяти
+   */
+  submitValidity?: () => void;
 };
 
 /**
@@ -74,6 +78,11 @@ export class Query<
    */
   private readonly defaultFetchPolicy?: FetchPolicy;
 
+  /**
+   * колбэк, вызываемый при успешном завершении запроса, подразумевается использование, для подтверждения валидности данных, чтобы квери не был удален из памяти
+   */
+  private readonly submitValidity?: () => void;
+
   constructor(
     private readonly executor: QueryExecutor<TResult>,
     {
@@ -83,6 +92,7 @@ export class Query<
       dataStorage,
       statusStorage,
       backgroundStatusStorage = null,
+      submitValidity,
     }: QueryParams<TResult, TError, TIsBackground>,
   ) {
     super(
@@ -98,6 +108,7 @@ export class Query<
     this.enabledAutoFetch = enabledAutoFetch;
     this.defaultFetchPolicy = fetchPolicy;
     this.storage = dataStorage;
+    this.submitValidity = submitValidity;
 
     makeObservable(this as ThisType<this>, {
       async: action,
@@ -135,6 +146,7 @@ export class Query<
    */
   private submitSuccess = (resData: TResult) => {
     this.storage.setData(resData);
+    this.submitValidity?.();
 
     return resData;
   };

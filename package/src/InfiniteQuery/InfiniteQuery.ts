@@ -54,6 +54,10 @@ export type InfiniteQueryParams<
   backgroundStatusStorage?: TIsBackground extends true
     ? StatusStorage<TError>
     : null | undefined;
+  /**
+   * колбэк, вызываемый при успешном завершении запроса, подразумевается использование, для подтверждения валидности данных, чтобы квери не был удален из памяти
+   */
+  submitValidity?: () => void;
 };
 
 /**
@@ -107,6 +111,11 @@ export class InfiniteQuery<
    */
   private readonly defaultFetchPolicy?: FetchPolicy;
 
+  /**
+   * колбэк, вызываемый при успешном завершении запроса, подразумевается использование, для подтверждения валидности данных, чтобы квери не был удален из памяти
+   */
+  private readonly submitValidity?: () => void;
+
   constructor(
     private readonly executor: InfiniteExecutor<TResult>,
     {
@@ -117,6 +126,7 @@ export class InfiniteQuery<
       dataStorage,
       statusStorage,
       backgroundStatusStorage = null,
+      submitValidity,
     }: InfiniteQueryParams<TResult, TError, TIsBackground>,
   ) {
     super(
@@ -133,6 +143,7 @@ export class InfiniteQuery<
     this.defaultOnError = onError;
     this.enabledAutoFetch = enabledAutoFetch;
     this.defaultFetchPolicy = fetchPolicy;
+    this.submitValidity = submitValidity;
 
     makeObservable(this as ThisType<this>, {
       data: computed,
@@ -163,6 +174,7 @@ export class InfiniteQuery<
       this.storage.setData([...this.storage.data!, ...result]);
     } else {
       this.storage.setData(result);
+      this.submitValidity?.();
     }
 
     // убеждаемся что результат запроса действительно массив,

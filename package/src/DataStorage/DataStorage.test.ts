@@ -40,8 +40,8 @@ describe('DataStorageFactory', () => {
   it('Инстансы хранилищ с одинаковым ключом совпадают', () => {
     const factory = new DataStorageFactory();
 
-    const storageA = factory.getStorage(['foo']);
-    const storageB = factory.getStorage(['foo']);
+    const storageA = factory.getStorage('foo');
+    const storageB = factory.getStorage('foo');
 
     expect(storageA === storageB).toBeTruthy();
   });
@@ -49,8 +49,8 @@ describe('DataStorageFactory', () => {
   it('Инстансы хранилищ с разными ключами отличаются', () => {
     const factory = new DataStorageFactory();
 
-    const storageA = factory.getStorage(['foo']);
-    const storageB = factory.getStorage(['bar']);
+    const storageA = factory.getStorage('foo');
+    const storageB = factory.getStorage('bar');
 
     expect(storageA !== storageB).toBeTruthy();
   });

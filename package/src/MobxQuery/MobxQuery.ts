@@ -10,8 +10,9 @@ import {
   type MutationParams,
 } from '../Mutation';
 import type { CacheKey, FetchPolicy } from '../types';
-import { DataStorageFactory } from '../DataStorage';
+import { type DataStorage, DataStorageFactory } from '../DataStorage';
 import { type StatusStorage, StatusStorageFactory } from '../StatusStorage';
+import { AdaptableMap } from '../AdaptableMap';
 
 /**
  * время, спустя которое, запись о query c network-only будет удалена
@@ -41,7 +42,7 @@ type MobxQueryParams = {
 
 type CreateQueryParams<TResult, TError, TIsBackground extends boolean> = Omit<
   QueryParams<TResult, TError, TIsBackground>,
-  'dataStorage' | 'statusStorage' | 'backgroundStatusStorage'
+  'dataStorage' | 'statusStorage' | 'backgroundStatusStorage' | 'submitValidity'
 > & {
   /**
    * режим фонового обновления
@@ -55,7 +56,7 @@ type CreateInfiniteQueryParams<
   TIsBackground extends boolean,
 > = Omit<
   InfiniteQueryParams<TResult, TError, TIsBackground>,
-  'dataStorage' | 'statusStorage' | 'backgroundStatusStorage'
+  'dataStorage' | 'statusStorage' | 'backgroundStatusStorage' | 'submitValidity'
 > & {
   /**
    * режим фонового обновления
@@ -63,12 +64,50 @@ type CreateInfiniteQueryParams<
   isBackground?: TIsBackground;
 };
 
+type QueryType = typeof Query.name | typeof InfiniteQuery.name;
+
 /**
  * внутриний тип кешируемого стора
  */
-type CachedQueryStore<TResult, TError, TIsBackground extends boolean> =
+type CachedQuery<TResult, TError, TIsBackground extends boolean> =
   | Query<TResult, TError, TIsBackground>
   | InfiniteQuery<TResult, TError, TIsBackground>;
+
+type FallbackableCreateParams<TResult, TError, TIsBackground extends boolean> =
+  | Pick<
+      CreateQueryParams<TResult, TError, TIsBackground>,
+      'onError' | 'fetchPolicy' | 'enabledAutoFetch' | 'isBackground'
+    >
+  | Pick<
+      CreateInfiniteQueryParams<TResult, TError, TIsBackground>,
+      'onError' | 'fetchPolicy' | 'enabledAutoFetch' | 'isBackground'
+    >;
+
+type InternalCreateQueryParams<
+  TResult,
+  TError,
+  TIsBackground extends boolean,
+> =
+  | Pick<
+      QueryParams<TResult, TError, TIsBackground>,
+      | 'dataStorage'
+      | 'backgroundStatusStorage'
+      | 'onError'
+      | 'statusStorage'
+      | 'submitValidity'
+      | 'fetchPolicy'
+      | 'enabledAutoFetch'
+    >
+  | Pick<
+      InfiniteQueryParams<TResult, TError, TIsBackground>,
+      | 'dataStorage'
+      | 'backgroundStatusStorage'
+      | 'onError'
+      | 'statusStorage'
+      | 'submitValidity'
+      | 'fetchPolicy'
+      | 'enabledAutoFetch'
+    >;
 
 /**
  * Сервис, позволяющий кэшировать данные.
@@ -77,15 +116,12 @@ export class MobxQuery<TDefaultError = void> {
   /**
    * объект соответствия хешей ключей и их значений
    */
-  private keys: Record<KeyHash, CacheKey[]> = {};
+  private keys = new Map<KeyHash, CacheKey[]>();
 
   /**
    * Map соответствия хешей ключей к запомненным сторам
    */
-  private cacheableStores = new Map<
-    KeyHash,
-    CachedQueryStore<unknown, unknown, false>
-  >();
+  private queriesMap = new AdaptableMap<CachedQuery<unknown, unknown, false>>();
 
   /**
    * фабрика создания хранилищ данных для обычного Query
@@ -96,11 +132,6 @@ export class MobxQuery<TDefaultError = void> {
    * фабрика создания хранилищ статусов между экземплярами Query и экземллярами Infinite Query.
    */
   private statusStorageFactory = new StatusStorageFactory();
-
-  /**
-   * фабрика создания хранилищ данных для Infinite Query
-   */
-  private infiniteQueryDataStorageFactory = new DataStorageFactory();
 
   /**
    * стандартный обработчик ошибок, будет использован, если не передан другой
@@ -138,53 +169,102 @@ export class MobxQuery<TDefaultError = void> {
     // сет сериализовонных ключей
     const keysSet = new Set(keysParts.map(this.serialize));
 
-    Object.keys(this.keys).forEach((key: KeyHash) => {
-      const value = this.keys[key];
+    [...this.keys.keys()].forEach((keyHash) => {
+      const key = this.keys.get(keyHash);
+
+      if (!key) {
+        return;
+      }
+
       // проверяем, есть ли пересечение между закешированными ключами и набором ключей для инвалидации
-      const hasTouchedElement = value.some((valuePart) =>
+      const hasTouchedElement = key.some((valuePart) =>
         keysSet.has(this.serialize(valuePart)),
       );
 
       if (hasTouchedElement) {
-        this.cacheableStores.get(key)?.invalidate();
+        const query = this.queriesMap.get(keyHash);
+
+        if (query) {
+          query.invalidate();
+          // конвертируем инвалидированный квери в слабый,
+          // чтобы сборщик мусора мог удалить неиспользуемые квери
+          this.queriesMap.convertToWeak(keyHash);
+        }
       }
     });
+  };
+
+  // метод для подтверждения того, что квери успешно получил валидные данные
+  private submitValidity = (keyHash: KeyHash) => {
+    // конвертируем квери в сильный,
+    // чтобы сборщик мусора не удалил наш кеш преждевременно
+    this.queriesMap.convertToStrong(keyHash);
   };
 
   /**
    * метод инвалидации всех query
    */
   public invalidateQueries = () => {
-    [...this.cacheableStores.entries()].forEach(([, store]) => {
-      store.invalidate();
+    [...this.keys.keys()].forEach((keyHash) => {
+      this.queriesMap.get(keyHash)?.invalidate();
+      this.queriesMap.convertToWeak(keyHash);
     });
   };
 
   /**
-   * метод, который занимается проверкой наличия стора по ключу,
+   * метод, который занимается проверкой наличия квери по ключу,
    * и если нет, создает новый, добавляет его к себе в память, и возвращает его пользователю
    */
   private getCachedQuery = <TResult, TError, TIsBackground extends boolean>(
     key: CacheKey[],
-    createStore: () => CachedQueryStore<TResult, TError, TIsBackground>,
-    fetchPolicy: FetchPolicy,
+    createStore: (
+      internalParams: InternalCreateQueryParams<TResult, TError, TIsBackground>,
+    ) => CachedQuery<TResult, TError, TIsBackground>,
+    type: QueryType,
+    createParams?: FallbackableCreateParams<TResult, TError, TIsBackground>,
   ) => {
-    // создаем хэш ключа с добавляем к ключу значения fetchPolicy,
-    // чтобы query c одинаковым ключом, но разным fetchPolicy не пересекались бы
-    const keyHash: KeyHash = this.serialize([...key, fetchPolicy]);
-
-    if (this.cacheableStores.has(keyHash)) {
-      return this.cacheableStores.get(keyHash);
-    }
-
-    const store = createStore();
-
-    this.cacheableStores.set(
-      keyHash,
-      store as CachedQueryStore<unknown, unknown, false>,
+    const fetchPolicy = createParams?.fetchPolicy || this.defaultFetchPolicy;
+    const keys = this.makeKeys(
+      key,
+      fetchPolicy,
+      createParams?.isBackground ?? false,
+      type,
     );
 
-    this.keys[keyHash] = key;
+    const cached = this.queriesMap.get(keys.queryKeyHash);
+
+    if (cached) {
+      return cached;
+    }
+
+    const store = createStore({
+      onError: (createParams?.onError ||
+        this.defaultErrorHandler) as OnError<TError>,
+      enabledAutoFetch:
+        createParams?.enabledAutoFetch ?? this.defaultEnabledAutoFetch,
+      fetchPolicy: fetchPolicy,
+      dataStorage: this.queryDataStorageFactory.getStorage<TResult>(
+        keys.dataKeyHash,
+      ),
+      statusStorage: this.statusStorageFactory.getStorage<TError>(
+        keys.statusKeyHash,
+      ),
+      backgroundStatusStorage: this.getBackgroundStatusStorage<
+        TError,
+        TIsBackground
+      >(
+        keys.backgroundStatusKeyHash,
+        Boolean(createParams?.isBackground) as TIsBackground,
+      ),
+      submitValidity: () => this.submitValidity(keys.queryKeyHash),
+    });
+
+    this.queriesMap.set(
+      keys.queryKeyHash,
+      store as CachedQuery<unknown, unknown, false>,
+    );
+
+    this.keys.set(keys.queryKeyHash, keys.queryKey);
 
     // Ожидается, что network-only квери не должны кешироваться,
     // но, с введением StrictMode в реакт 18, проявилась проблема,
@@ -195,20 +275,44 @@ export class MobxQuery<TDefaultError = void> {
     // делают по отдельному запросу к данным единомоментно,
     if (fetchPolicy === 'network-only') {
       setTimeout(() => {
-        this.cacheableStores.delete(keyHash);
-        delete this.keys[keyHash];
+        this.queriesMap.delete(keys.queryKeyHash);
+        this.keys.delete(keys.queryKeyHash);
       }, DEFAULT_TIME_TO_CLEAN);
     }
 
     return store;
   };
 
+  private makeKeys = (
+    rootKey: CacheKey[],
+    fetchPolicy: FetchPolicy,
+    isBackground: boolean,
+    type: QueryType,
+  ) => {
+    const queryKey = [...rootKey, { fetchPolicy, isBackground, type }];
+    const queryKeyHash = this.serialize(queryKey);
+    const dataKeyHash = this.serialize([...rootKey, { type }]);
+    const statusKeyHash = this.serialize([...rootKey, { type }]);
+    const backgroundStatusKeyHash = this.serialize([
+      ...rootKey,
+      { type, isBackground },
+    ]);
+
+    return {
+      queryKey,
+      queryKeyHash,
+      statusKeyHash,
+      backgroundStatusKeyHash,
+      dataKeyHash,
+    };
+  };
+
   private getBackgroundStatusStorage = <TError, TIsBackground extends boolean>(
-    key: CacheKey[],
+    keyHash: KeyHash,
     hasBackground: TIsBackground,
   ) =>
     (hasBackground
-      ? this.statusStorageFactory.getStorage([...key, true])
+      ? this.statusStorageFactory.getStorage(keyHash)
       : null) as TIsBackground extends true ? StatusStorage<TError> : null;
 
   /**
@@ -222,29 +326,18 @@ export class MobxQuery<TDefaultError = void> {
     key: CacheKey[],
     executor: QueryExecutor<TResult>,
     params?: CreateQueryParams<TResult, TError, TIsBackground>,
-  ) => {
-    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy;
-
-    return this.getCachedQuery(
+  ) =>
+    this.getCachedQuery<TResult, TError, TIsBackground>(
       key,
-      () =>
+      (internalParams) =>
         new Query(executor, {
           ...params,
-          onError: (params?.onError ||
-            this.defaultErrorHandler) as OnError<TError>,
-          enabledAutoFetch:
-            params?.enabledAutoFetch ?? this.defaultEnabledAutoFetch,
-          fetchPolicy: fetchPolicy,
-          dataStorage: this.queryDataStorageFactory.getStorage<TResult>(key),
-          statusStorage: this.statusStorageFactory.getStorage<TError>(key),
-          backgroundStatusStorage: this.getBackgroundStatusStorage<
-            TError,
-            TIsBackground
-          >(key, Boolean(params?.isBackground) as TIsBackground),
+          ...internalParams,
+          dataStorage: internalParams.dataStorage as DataStorage<TResult>,
         }),
-      fetchPolicy,
+      Query.name,
+      params,
     ) as Query<TResult, TError, TIsBackground>;
-  };
 
   /**
    * метод создания инфинит стора, кешируется
@@ -257,32 +350,18 @@ export class MobxQuery<TDefaultError = void> {
     key: CacheKey[],
     executor: InfiniteExecutor<TResult>,
     params?: CreateInfiniteQueryParams<TResult, TError, TIsBackground>,
-  ) => {
-    const fetchPolicy = params?.fetchPolicy || this.defaultFetchPolicy || '';
-
-    return this.getCachedQuery(
+  ) =>
+    this.getCachedQuery<TResult, TError, TIsBackground>(
       key,
-      () =>
+      (internalParams) =>
         new InfiniteQuery(executor, {
           ...params,
-          onError: (params?.onError ||
-            this.defaultErrorHandler) as OnError<TError>,
-          enabledAutoFetch:
-            params?.enabledAutoFetch ?? this.defaultEnabledAutoFetch,
-          dataStorage:
-            this.infiniteQueryDataStorageFactory.getStorage<Array<TResult>>(
-              key,
-            ),
-          statusStorage: this.statusStorageFactory.getStorage<TError>(key),
-          fetchPolicy: fetchPolicy,
-          backgroundStatusStorage: this.getBackgroundStatusStorage<
-            TError,
-            TIsBackground
-          >(key, Boolean(params?.isBackground) as TIsBackground),
+          ...internalParams,
+          dataStorage: internalParams.dataStorage as DataStorage<TResult[]>,
         }),
-      fetchPolicy,
+      InfiniteQuery.name,
+      params,
     ) as InfiniteQuery<TResult, TError, TIsBackground>;
-  };
 
   /**
    * метод создания мутации, не кешируется
