@@ -107,7 +107,7 @@ describe('Mutation', () => {
     expect(onDefaultError).not.toBeCalled();
   });
 
-  it('background равен null', () => {
+  it('Модель фоновых статусов background равен null', () => {
     const sut = new Mutation(() => Promise.reject('foo'));
 
     expect(sut.background).toBeNull();
