@@ -457,7 +457,7 @@ describe('InfiniteQuery', () => {
     expect(queryB.isSuccess).toBeFalsy();
   });
 
-  describe('При использовании при использовании backgroundStatusStorage', () => {
+  describe('При использовании backgroundStatusStorage', () => {
     const buildQuery = () =>
       new InfiniteQuery<string, unknown, true>(() => Promise.resolve(['foo']), {
         dataStorage: getDataStorage(),
