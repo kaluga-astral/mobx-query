@@ -318,7 +318,7 @@ export class MobxQuery<TDefaultError = void> {
   /**
    * метод создания стора, кешируется
    */
-  createQuery = <
+  public createQuery = <
     TResult,
     TError = TDefaultError,
     TIsBackground extends boolean = false,
@@ -342,7 +342,7 @@ export class MobxQuery<TDefaultError = void> {
   /**
    * метод создания инфинит стора, кешируется
    */
-  createInfiniteQuery = <
+  public createInfiniteQuery = <
     TResult,
     TError = TDefaultError,
     TIsBackground extends boolean = false,
@@ -366,7 +366,11 @@ export class MobxQuery<TDefaultError = void> {
   /**
    * метод создания мутации, не кешируется
    */
-  createMutation = <TResult, TError = TDefaultError, TExecutorParams = void>(
+  public createMutation = <
+    TResult,
+    TError = TDefaultError,
+    TExecutorParams = void,
+  >(
     executor: MutationExecutor<TResult, TExecutorParams>,
     params?: MutationParams<TResult, TError>,
   ) =>

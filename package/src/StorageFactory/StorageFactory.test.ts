@@ -17,10 +17,10 @@ describe('StorageFactory', () => {
     return new Factory();
   };
 
-  it('Вызывает метод создания при попытке получить данные', () => {
-    const spy = vi.fn();
+  it('Фабрика вызывает метод создания при попытке получить данные', () => {
+    const createDataSpy = vi.fn();
     const createData = () => {
-      spy();
+      createDataSpy();
 
       return 'foo';
     };
@@ -28,17 +28,17 @@ describe('StorageFactory', () => {
 
     // эмулируем обращение к данным
     JSON.stringify(sut.getStorage('foo'));
-    expect(spy).toBeCalled();
+    expect(createDataSpy).toBeCalled();
   });
 
-  it('Создает стор при попытке получить данные', () => {
+  it('GetStorage создает стор при попытке получить данные', () => {
     const createData = () => 'foo';
     const sut = buildSut(createData);
 
-    expect(sut.getStorage('foo')).toBe('foo');
+    expect(sut.getStorage('bar')).toBe('foo');
   });
 
-  it('Отдает ранее созданную сущность при вызове получения с одинаковым ключом', () => {
+  it('GetStorage отдает ранее созданную сущность при вызове получения с одинаковым ключом', () => {
     const sut = buildSut(() => ({}));
 
     const dataA = sut.getStorage('foo');
@@ -47,7 +47,7 @@ describe('StorageFactory', () => {
     expect(dataA).toBe(dataB);
   });
 
-  it('Отдает разные сущности при вызове получения с разными ключами', () => {
+  it('GetStorage отдает разные сущности при вызове получения с разными ключами', () => {
     const sut = buildSut(() => ({}));
 
     const dataA = sut.getStorage('foo');

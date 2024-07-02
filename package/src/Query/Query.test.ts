@@ -346,7 +346,7 @@ describe('Query', () => {
     expect(queryB.isSuccess).toBeFalsy();
   });
 
-  describe('При использовании при использовании backgroundStatusStorage', () => {
+  describe('При использовании backgroundStatusStorage', () => {
     const buildQuery = () =>
       new Query<string, unknown, true>(() => Promise.resolve('foo'), {
         dataStorage: getDataStorage(),
