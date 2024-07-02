@@ -31,14 +31,14 @@ describe('StorageFactory', () => {
     expect(createDataSpy).toBeCalled();
   });
 
-  it('Метод getStorage создает стор при попытке получить данные', () => {
+  it('GetStorage создает стор при попытке получить данные', () => {
     const createData = () => 'foo';
     const sut = buildSut(createData);
 
     expect(sut.getStorage([''])).toBe('foo');
   });
 
-  it('Метод getStorage отдает ранее созданную сущность при вызове получения с одинаковым ключом', () => {
+  it('GetStorage отдает ранее созданную сущность при вызове получения с одинаковым ключом', () => {
     const sut = buildSut(() => ({}));
 
     const dataA = sut.getStorage(['foo']);
@@ -47,7 +47,7 @@ describe('StorageFactory', () => {
     expect(dataA).toBe(dataB);
   });
 
-  it('Метод getStorage отдает разные сущности при вызове получения с разными ключами', () => {
+  it('GetStorage отдает разные сущности при вызове получения с разными ключами', () => {
     const sut = buildSut(() => ({}));
 
     const dataA = sut.getStorage(['foo']);
