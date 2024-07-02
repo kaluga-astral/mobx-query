@@ -342,6 +342,31 @@ console.log(query.isError); // 'true'
 console.log(query.error); // 'foo'
 ```
 
+## Режим фонового обновления
+`Query` и `InfiniteQuery` имеют режим фонового обновления. Предполагается, что будет хорошо подходить для обновления данных через websocket.
+
+В этом режиме, основные статусные флаги `isSuccess`, `isLoading`, `isError`, `error` будут изменяться до первого успешного запроса. Последующие запросы уже будут изменять статусные флаги под полем `backgroundStatus`
+
+```ts
+const query = mobxQuery.createQuery(
+    ['some cache key'],
+    () => Promise.resolve('foo'),
+    { isBackground: true }
+);
+
+await query.async();
+console.log(query.isLoading); // переключался в true на момент запроса
+console.log(query.isSuccess); // true
+
+query.invalidate();
+await query.async();
+console.log(query.isLoading); // не изменялся
+console.log(query.isSuccess); // остался неизменным - true
+
+console.log(query.backgroundStatus.isLoading); // переключался в true на момент обновления
+console.log(query.backgroundStatus.isSuccess); // true
+```
+
 # Тестирование
 
 ## Тестирование при включенном ```enabledAutoFetch```

@@ -106,4 +106,10 @@ describe('Mutation', () => {
     expect(onAsyncError).toBeCalledWith('foo');
     expect(onDefaultError).not.toBeCalled();
   });
+
+  it('Модель фоновых статусов background равен null', () => {
+    const sut = new Mutation(() => Promise.reject('foo'));
+
+    expect(sut.background).toBeNull();
+  });
 });

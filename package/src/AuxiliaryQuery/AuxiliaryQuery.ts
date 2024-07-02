@@ -1,12 +1,16 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { action, makeObservable, observable, runInAction } from 'mobx';
+
+import { type StatusStorage } from '../StatusStorage';
 
 /**
- * @description испольнитель запроса
+ * испольнитель запроса
  */
 type Executor<TResult> = () => Promise<TResult>;
 
+type SetStorage<TError> = (storage: StatusStorage<TError>) => void;
+
 /**
- * @description вспомогательное хранилище данных, для композиции в Query сторах,
+ * вспомогательное хранилище данных, для композиции в Query сторах,
  * содержащее флаги загрузки и ошибки,
  * колбэки на успешный запрос и на ошибку,
  * данные последней ошибки,
@@ -14,41 +18,40 @@ type Executor<TResult> = () => Promise<TResult>;
  */
 export class AuxiliaryQuery<TResult, TError = void> {
   /**
-   * @description флаг обозначающий загрузку данных
-   */
-  public isLoading: boolean = false;
-
-  /**
-   * @description флаг обозначающий, что последний запрос был зафейлен
-   */
-  public isError: boolean = false;
-
-  /**
-   * @description данные о последней ошибке
-   */
-  public error?: TError = undefined;
-
-  /**
-   * @description флаг, обозначающий успешность завершения последнего запроса
-   */
-  public isSuccess = false;
-
-  /**
    * флаг, обозначающий простаивание, т.е. запроса еще не было
    */
   public isIdle = true;
 
   /**
-   * @description единый промис, для устранения гонки запросов
+   * единый промис, для устранения гонки запросов
    */
-  public unifiedPromise?: Promise<TResult>;
+  private unifiedPromise?: Promise<TResult>;
 
-  constructor() {
-    makeAutoObservable(this, { unifiedPromise: false });
+  /**
+   * флаг, по которому реактивно определяется необходимость запуска инвалидации
+   */
+  public isInvalid: boolean = false;
+
+  constructor(
+    private readonly statusStorage: StatusStorage<TError>,
+    private readonly backgroundStatusStorage: StatusStorage<TError> | null,
+  ) {
+    makeObservable(this as ThisType<this>, {
+      getUnifiedPromise: action,
+      isIdle: observable,
+      isInvalid: observable,
+      submitSuccess: action,
+      setSuccess: action,
+      setError: action,
+      setLoading: action,
+      submitError: action,
+      startLoading: action,
+      invalidate: action,
+    });
   }
 
   /**
-   * @description метод ответственный за создание единого промиса,
+   * метод ответственный за создание единого промиса,
    * для устранения гонки запросов
    */
   public getUnifiedPromise = (executor: Executor<TResult>) => {
@@ -73,7 +76,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
           this.unifiedPromise = undefined;
 
           runInAction(() => {
-            this.isLoading = false;
+            this.statusStorage.isLoading = false;
           });
         });
     }
@@ -81,30 +84,58 @@ export class AuxiliaryQuery<TResult, TError = void> {
     return this.unifiedPromise as Promise<TResult>;
   };
 
+  private setSuccess: SetStorage<TError> = (storage) => {
+    storage.isError = false;
+    storage.isSuccess = true;
+  };
+
+  private checkBackgroundAndSet = (setStorage: SetStorage<TError>) => {
+    if (this.backgroundStatusStorage && this.statusStorage.isSuccess) {
+      setStorage(this.backgroundStatusStorage);
+    } else {
+      setStorage(this.statusStorage);
+    }
+  };
+
   /**
-   * @description обработчик успешного ответа
+   * обработчик успешного ответа
    */
   public submitSuccess = () => {
-    this.isError = false;
-    this.isSuccess = true;
+    this.checkBackgroundAndSet(this.setSuccess);
+    this.isInvalid = false;
+  };
+
+  private setError = (storage: StatusStorage<TError>, error: TError) => {
+    storage.isSuccess = false;
+    storage.isError = true;
+    storage.error = error;
   };
 
   /**
-   * @description обработчик ошибки
+   * обработчик ошибки
    */
-  public submitError = (e: TError) => {
-    this.isSuccess = false;
-    this.isError = true;
-    this.error = e;
+  public submitError = (error: TError) => {
+    this.checkBackgroundAndSet((storage) => this.setError(storage, error));
+  };
+
+  private setLoading: SetStorage<TError> = (storage) => {
+    storage.isLoading = true;
+    storage.isError = false;
+    storage.isSuccess = false;
   };
 
   /**
-   * @description метод, вызываемый в самом начале запроса, чтобы сбросить флаги в соответствующее значение
+   * метод, вызываемый в самом начале запроса, чтобы сбросить флаги в соответствующее значение
    */
   public startLoading = () => {
     this.isIdle = false;
-    this.isLoading = true;
-    this.isError = false;
-    this.isSuccess = false;
+    this.checkBackgroundAndSet(this.setLoading);
+  };
+
+  /**
+   * метод для инвалидации данных
+   */
+  public invalidate = () => {
+    this.isInvalid = true;
   };
 }

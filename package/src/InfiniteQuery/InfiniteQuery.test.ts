@@ -2,15 +2,18 @@ import { describe, expect, it, vi } from 'vitest';
 import { when } from 'mobx';
 
 import { DataStorage } from '../DataStorage';
+import { StatusStorage } from '../StatusStorage';
 
 import { InfiniteQuery } from './InfiniteQuery';
 
 describe('InfiniteQuery', () => {
   const getDataStorage = <T = unknown[]>() => new DataStorage<T>();
+  const getStatusStorage = () => new StatusStorage();
 
   describe('При начальном состоянии', () => {
     const query = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: getDataStorage(),
+      statusStorage: getStatusStorage(),
     });
 
     it('флаг загрузки false', () => {
@@ -41,6 +44,7 @@ describe('InfiniteQuery', () => {
   it('Флаг простаивания false сразу после запуска запроса', () => {
     const query = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: getDataStorage(),
+      statusStorage: getStatusStorage(),
     });
 
     query.sync();
@@ -51,6 +55,7 @@ describe('InfiniteQuery', () => {
     const createQuery = () =>
       new InfiniteQuery(() => Promise.resolve(['foo']), {
         dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
       });
 
     it('Данные ответа попадают в data', async () => {
@@ -83,6 +88,7 @@ describe('InfiniteQuery', () => {
     it('Флаг ошибки устанавливается', async () => {
       const query = new InfiniteQuery(() => Promise.reject('error'), {
         dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
       });
 
       query.sync();
@@ -94,6 +100,7 @@ describe('InfiniteQuery', () => {
     it('Значение ошибки попадает в поле error', async () => {
       const query = new InfiniteQuery(() => Promise.reject('error'), {
         dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
       });
 
       query.sync();
@@ -106,6 +113,7 @@ describe('InfiniteQuery', () => {
       const onError = vi.fn();
       const query = new InfiniteQuery(() => Promise.reject('error'), {
         dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
       });
 
       query.sync({ onError });
@@ -118,6 +126,7 @@ describe('InfiniteQuery', () => {
       const onDefaultError = vi.fn();
       const query = new InfiniteQuery(() => Promise.reject('error'), {
         dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
         onError: onDefaultError,
       });
 
@@ -132,6 +141,7 @@ describe('InfiniteQuery', () => {
       const query = new InfiniteQuery(() => Promise.reject('foo'), {
         onError: onDefaultError,
         dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
       });
 
       await query.async().catch((e) => e);
@@ -147,6 +157,7 @@ describe('InfiniteQuery', () => {
       const query = new InfiniteQuery(() => Promise.reject('error'), {
         dataStorage: getDataStorage(),
         onError: onDefaultError,
+        statusStorage: getStatusStorage(),
       });
 
       query.sync({ onError });
@@ -163,6 +174,7 @@ describe('InfiniteQuery', () => {
         () => Promise.resolve([Math.random()]),
         {
           dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
         },
       );
 
@@ -187,6 +199,7 @@ describe('InfiniteQuery', () => {
         () => Promise.resolve([Math.random()]),
         {
           dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
         },
       );
 
@@ -208,6 +221,7 @@ describe('InfiniteQuery', () => {
         () => Promise.resolve([Math.random()]),
         {
           dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
           enabledAutoFetch: true,
         },
       );
@@ -235,6 +249,7 @@ describe('InfiniteQuery', () => {
       const query = new InfiniteQuery(() => Promise.resolve(['foo']), {
         enabledAutoFetch: true,
         dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
       });
 
       // эмулируем считывание данных
@@ -253,6 +268,7 @@ describe('InfiniteQuery', () => {
         {
           enabledAutoFetch: true,
           dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
         },
       );
 
@@ -286,6 +302,7 @@ describe('InfiniteQuery', () => {
         {
           incrementCount: 1,
           dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
         },
       );
 
@@ -373,6 +390,7 @@ describe('InfiniteQuery', () => {
         {
           incrementCount: 2,
           dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
         },
       );
 
@@ -386,19 +404,224 @@ describe('InfiniteQuery', () => {
 
   it('Данные синхронизируются при использовании одного dataStorage', async () => {
     const unifiedDataStorage = getDataStorage();
+    const unifiedStatusStorage = getStatusStorage();
 
     const queryA = new InfiniteQuery(() => Promise.resolve(['foo']), {
       dataStorage: unifiedDataStorage,
+      statusStorage: unifiedStatusStorage,
     });
 
     const queryB = new InfiniteQuery(() => Promise.resolve(['bar']), {
       dataStorage: unifiedDataStorage,
+      statusStorage: unifiedStatusStorage,
     });
 
     await queryA.async();
     expect(queryB.data).toStrictEqual(['foo']);
-    await queryB.async();
-    expect(queryA.data).toStrictEqual(['bar']);
+  });
+
+  it('Статусы синхронизируются при использовании одного statusStorage', async () => {
+    const unifiedDataStorage = getDataStorage();
+    const unifiedStatusStorage = getStatusStorage();
+
+    const queryA = new InfiniteQuery(() => Promise.resolve(['foo']), {
+      dataStorage: unifiedDataStorage,
+      statusStorage: unifiedStatusStorage,
+    });
+
+    const queryB = new InfiniteQuery(() => Promise.resolve(['bar']), {
+      dataStorage: unifiedDataStorage,
+      statusStorage: unifiedStatusStorage,
+    });
+
+    await queryA.async();
+    expect(queryB.isSuccess).toBeTruthy();
+  });
+
+  it('Статусы не синхронизируются при использовании разных statusStorage', async () => {
+    const unifiedDataStorage = getDataStorage();
+
+    const queryA = new InfiniteQuery(() => Promise.resolve(['foo']), {
+      dataStorage: unifiedDataStorage,
+      statusStorage: getStatusStorage(),
+      backgroundStatusStorage: null,
+    });
+
+    const queryB = new InfiniteQuery(() => Promise.resolve(['bar']), {
+      dataStorage: unifiedDataStorage,
+      statusStorage: getStatusStorage(),
+      backgroundStatusStorage: null,
+    });
+
+    await queryA.async();
+    expect(queryB.isSuccess).toBeFalsy();
+  });
+
+  describe('При использовании backgroundStatusStorage', () => {
+    const buildQuery = () =>
+      new InfiniteQuery<string, unknown, true>(() => Promise.resolve(['foo']), {
+        dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
+        backgroundStatusStorage: getStatusStorage(),
+      });
+
+    it('Статус isSuccess == true при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.isSuccess).toBeTruthy();
+    });
+
+    it('Статус isError == false при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.isError).toBeFalsy();
+    });
+
+    it('Статус error == undefined при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.error).toBeUndefined();
+    });
+
+    it('Статус isLoading == true при запуске первого запроса', async () => {
+      const query = buildQuery();
+
+      query.async();
+      expect(query.isLoading).toBeTruthy();
+    });
+
+    it('Статус backrgoundStatus.isSuccess == false при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.background.isSuccess).toBeFalsy();
+    });
+
+    it('Статус backrgoundStatus.isError == false при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.background.isError).toBeFalsy();
+    });
+
+    it('Статус backrgoundStatus.isLoading == false при старте первого запроса', async () => {
+      const query = buildQuery();
+
+      query.async();
+      expect(query.background.isLoading).toBeFalsy();
+    });
+
+    it('Статус backrgoundStatus.error == undefined при успешном первом запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      expect(query.background.error).toBeUndefined();
+    });
+
+    it('Статус isLoading не изменяется при повторных запросах', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      query.invalidate();
+      query.async();
+      expect(query.isLoading).toBeFalsy();
+    });
+
+    it('Статус backrgoundStatus.isLoading изменяется при повторных запросах', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      query.invalidate();
+      query.async();
+      expect(query.background.isLoading).toBeTruthy();
+    });
+
+    it('Статус backrgoundStatus.isSuccess == true при повторном успешном запросе', async () => {
+      const query = buildQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async();
+      expect(query.background.isSuccess).toBeTruthy();
+    });
+
+    const buildSuccessAndFailQuery = () => {
+      let count = 0;
+
+      return new InfiniteQuery<string, unknown, true>(
+        () => {
+          count++;
+
+          if (count <= 1) {
+            return Promise.resolve(['foo']);
+          }
+
+          return Promise.reject('bar');
+        },
+        {
+          dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
+          backgroundStatusStorage: getStatusStorage(),
+        },
+      );
+    };
+
+    it('Статус isSuccess == true при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.isSuccess).toBeTruthy();
+    });
+
+    it('Статус isError == false при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.isError).toBeFalsy();
+    });
+
+    it('Статус error == undefined при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.error).toBeUndefined();
+    });
+
+    it('Статус background.isSuccess == false при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.background.isSuccess).toBeFalsy();
+    });
+
+    it('Статус background.isError == true при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.background.isError).toBeTruthy();
+    });
+
+    it('Статус background.error содержит ошибку при первом успешном и последующих провальных запросах', async () => {
+      const query = buildSuccessAndFailQuery();
+
+      await query.async();
+      query.invalidate();
+      await query.async().catch(() => {});
+      expect(query.background.error).toBe('bar');
+    });
   });
 
   describe('При политике network-only', () => {
@@ -414,6 +637,7 @@ describe('InfiniteQuery', () => {
         },
         {
           dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
           fetchPolicy: 'network-only',
         },
       );
@@ -458,6 +682,7 @@ describe('InfiniteQuery', () => {
         },
         {
           dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
         },
       );
 

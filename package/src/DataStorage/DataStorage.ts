@@ -1,13 +1,14 @@
 import { makeAutoObservable } from 'mobx';
 
 import type { CacheKey } from '../types';
+import { StorageFactory } from '../StorageFactory';
 
 /**
- * @description хранилище данных, предназначено для обеспечения единого интерфейса при работе с данными
+ * хранилище данных, предназначено для обеспечения единого интерфейса при работе с данными
  */
 export class DataStorage<TData> {
   /**
-   * @description поле, отвечающее за непосредственное хранение данных
+   * поле, отвечающее за непосредственное хранение данных
    */
   private internalData?: TData = undefined;
 
@@ -16,21 +17,21 @@ export class DataStorage<TData> {
   }
 
   /**
-   * @description флаг, отображающий наличие данных
+   * флаг, отображающий наличие данных
    */
   public get hasData() {
     return Boolean(this.internalData);
   }
 
   /**
-   * @description метод для установки данных
+   * метод для установки данных
    */
   public setData = (value: TData) => {
     this.internalData = value;
   };
 
   /**
-   * @description геттер данных
+   * геттер данных
    */
   public get data() {
     return this.internalData;
@@ -38,24 +39,17 @@ export class DataStorage<TData> {
 }
 
 /**
- * @description фабрика ответственная за создание и хранение экземляров хранилищ
+ * фабрика ответственная за создание и хранение экземляров хранилищ
  */
-export class DataStorageFactory {
-  /**
-   * @description Map хранящий инстансы хранилищ по хэшу ключа
-   */
-  private storageMap = new Map<string, DataStorage<unknown>>();
+export class DataStorageFactory extends StorageFactory<DataStorage<unknown>> {
+  constructor() {
+    super(() => new DataStorage());
+  }
 
   /**
-   * @description фабричный метод получения/создания инстанса хранилища по ключу
+   * фабричный метод получения/создания инстанса хранилища по ключу
    */
   public getStorage = <TData>(key: CacheKey[]) => {
-    const keyHash = JSON.stringify(key);
-
-    if (!this.storageMap.has(keyHash)) {
-      this.storageMap.set(keyHash, new DataStorage());
-    }
-
-    return this.storageMap.get(keyHash) as DataStorage<TData>;
+    return this.getInternalStorage(key) as DataStorage<TData>;
   };
 }

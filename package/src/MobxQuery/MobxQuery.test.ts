@@ -293,4 +293,26 @@ describe('MobxQuery', () => {
     JSON.stringify(query.data);
     expect(query.isLoading).toBeFalsy();
   });
+
+  it('Создаваемый квери по умолчанию не использует background', () => {
+    const mobxQuery = new MobxQuery();
+
+    const query = mobxQuery.createQuery([['foo']], () =>
+      Promise.resolve('foo'),
+    );
+
+    expect(query.background).toBeNull();
+  });
+
+  it('Создаваемый квери использует background при передаче флага isBackground:true', () => {
+    const mobxQuery = new MobxQuery();
+
+    const query = mobxQuery.createQuery(
+      [['foo']],
+      () => Promise.resolve('foo'),
+      { isBackground: true },
+    );
+
+    expect(query.background).not.toBeNull();
+  });
 });
