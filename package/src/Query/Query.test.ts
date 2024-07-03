@@ -83,16 +83,16 @@ describe('Query', () => {
       expect(query.isError).toBeFalsy();
     });
 
-    it('Вызывается переданный submitValidity', async () => {
-      const spy = vi.fn();
+    it('Квери вызывает переданный submitValidity при успешном запросе', async () => {
+      const submitSpy = vi.fn();
       const query = new Query(() => Promise.resolve('foo'), {
         dataStorage: getDataStorage(),
         statusStorage: getStatusStorage(),
-        submitValidity: spy,
+        submitValidity: submitSpy,
       });
 
       await query.async();
-      expect(spy).toBeCalled();
+      expect(submitSpy).toBeCalled();
     });
   });
 

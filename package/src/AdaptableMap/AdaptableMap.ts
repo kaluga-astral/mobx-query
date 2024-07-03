@@ -81,14 +81,14 @@ export class AdaptableMap<TData extends {}> implements SimplifiedMap<TData> {
   };
 
   /**
-   * метод для конвертации значения в из "сильного" в "слабое" состояние
+   * метод для конвертации значения из "сильного" в "слабое" состояние
    */
   public convertToWeak = (key: string) => {
     this.change(key, this.strong, this.weak);
   };
 
   /**
-   * метод для конвертации значения в из "слабого" в "сильное" состояние
+   * метод для конвертации значения из "слабого" в "сильное" состояние
    */
   public convertToStrong = (key: string) => {
     this.change(key, this.weak, this.strong);
