@@ -52,7 +52,7 @@ export type QueryBaseActions<TResult, TError, TExecutorParams = void> = {
 /**
  * политика получения данных.
  * @enum cache-first - данные сначала берутся из кеша, если их нет, тогда идет обращение к сети, ответ записывается в кэш
- * @enum network-only - данные всегда беруться из сети, при этом ответ записывается в кэш
+ * @enum network-only - данные всегда берутся из сети, при этом ответ записывается в кэш
  */
 export type FetchPolicy = 'network-only' | 'cache-first';
 

@@ -31,10 +31,18 @@ type OnError<TError = unknown> = (error: TError) => void;
 type KeyHash = string;
 
 type MobxQueryParams = {
+  /**
+   * политика получения данных по умолчанию.
+   * @enum cache-first - данные сначала берутся из кеша, если их нет, тогда идет обращение к сети, ответ записывается в кэш
+   * @enum network-only - данные всегда берутся из сети, при этом ответ записывается в кэш
+   */
   fetchPolicy?: FetchPolicy;
+  /**
+   * обработчик ошибок по умолчанию
+   */
   onError?: OnError;
   /**
-   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * флаг, отвечающий за автоматический запрос данных при обращении к полю data по умолчанию.
    * @default false
    */
   enabledAutoFetch?: boolean;
@@ -46,6 +54,7 @@ type CreateQueryParams<TResult, TError, TIsBackground extends boolean> = Omit<
 > & {
   /**
    * режим фонового обновления
+   * @default false
    */
   isBackground?: TIsBackground;
 };
@@ -60,6 +69,7 @@ type CreateInfiniteQueryParams<
 > & {
   /**
    * режим фонового обновления
+   * @default false
    */
   isBackground?: TIsBackground;
 };
@@ -73,7 +83,10 @@ type CachedQuery<TResult, TError, TIsBackground extends boolean> =
   | Query<TResult, TError, TIsBackground>
   | InfiniteQuery<TResult, TError, TIsBackground>;
 
-type FallbackableCreateParams<TResult, TError, TIsBackground extends boolean> =
+/**
+ * параметры поддающиеся установке значению по умолчанию
+ */
+type FallbackAbleCreateParams<TResult, TError, TIsBackground extends boolean> =
   | Pick<
       CreateQueryParams<TResult, TError, TIsBackground>,
       'onError' | 'fetchPolicy' | 'enabledAutoFetch' | 'isBackground'
@@ -83,6 +96,9 @@ type FallbackableCreateParams<TResult, TError, TIsBackground extends boolean> =
       'onError' | 'fetchPolicy' | 'enabledAutoFetch' | 'isBackground'
     >;
 
+/**
+ * внутренний объединяющий тип параметров создания квери расчитываемых внутренней логикой
+ */
 type InternalCreateQueryParams<
   TResult,
   TError,
@@ -217,11 +233,11 @@ export class MobxQuery<TDefaultError = void> {
    */
   private getCachedQuery = <TResult, TError, TIsBackground extends boolean>(
     key: CacheKey[],
-    createStore: (
+    createInstance: (
       internalParams: InternalCreateQueryParams<TResult, TError, TIsBackground>,
     ) => CachedQuery<TResult, TError, TIsBackground>,
     type: QueryType,
-    createParams?: FallbackableCreateParams<TResult, TError, TIsBackground>,
+    createParams?: FallbackAbleCreateParams<TResult, TError, TIsBackground>,
   ) => {
     const fetchPolicy = createParams?.fetchPolicy || this.defaultFetchPolicy;
     const keys = this.makeKeys(
@@ -231,13 +247,13 @@ export class MobxQuery<TDefaultError = void> {
       type,
     );
 
-    const cached = this.queriesMap.get(keys.queryKeyHash);
+    const cachedQuery = this.queriesMap.get(keys.queryKeyHash);
 
-    if (cached) {
-      return cached;
+    if (cachedQuery) {
+      return cachedQuery;
     }
 
-    const store = createStore({
+    const query = createInstance({
       onError: (createParams?.onError ||
         this.defaultErrorHandler) as OnError<TError>,
       enabledAutoFetch:
@@ -261,7 +277,7 @@ export class MobxQuery<TDefaultError = void> {
 
     this.queriesMap.set(
       keys.queryKeyHash,
-      store as CachedQuery<unknown, unknown, false>,
+      query as CachedQuery<unknown, unknown, false>,
     );
 
     this.keys.set(keys.queryKeyHash, keys.queryKey);
@@ -280,9 +296,12 @@ export class MobxQuery<TDefaultError = void> {
       }, DEFAULT_TIME_TO_CLEAN);
     }
 
-    return store;
+    return query;
   };
 
+  /**
+   * метод для создания ключей к внутренним хранилищам
+   */
   private makeKeys = (
     rootKey: CacheKey[],
     fetchPolicy: FetchPolicy,

@@ -5,6 +5,9 @@ export type SimplifiedMap<TData> = Pick<
   set: (key: string, value: TData) => void;
 };
 
+/**
+ * Фасад для работы с Map, хранящим значения как WeakRef
+ */
 class WeakRefMap<TData extends {}> implements SimplifiedMap<TData> {
   private readonly map = new Map<string, WeakRef<TData> | TData>();
 
@@ -29,10 +32,16 @@ class WeakRefMap<TData extends {}> implements SimplifiedMap<TData> {
   public has = (key: string) => this.map.has(key);
 }
 
+/**
+ * Фасад для работы с Map, умеющий в конвертацию хранимого значения в "слабое" состояние и в "сильное"
+ * По умолчанию все значения хранятся как "слабые".
+ * @enum "Слабое" состояние подразумевает то, что хранимое значение сохранено через WeakRef, следовательно, если в системе не останется ссылок на хранимое значение, сборщик мусора сможет удалить это значение из памяти.
+ * @enum "Сильное" состояние подразумевает то, что значение хранится как есть, т.е. даже если у в системе не останется других ссылок на хранимое значение, сборщик мусора не сможет удалить его из памяти.
+ */
 export class AdaptableMap<TData extends {}> implements SimplifiedMap<TData> {
-  public strong: SimplifiedMap<TData> = new Map<string, TData>();
+  private strong: SimplifiedMap<TData> = new Map<string, TData>();
 
-  public weak: SimplifiedMap<TData> = new WeakRefMap<TData>();
+  private weak: SimplifiedMap<TData> = new WeakRefMap<TData>();
 
   public get = (key: string): TData | undefined => {
     if (this.strong.has(key)) {
@@ -47,6 +56,7 @@ export class AdaptableMap<TData extends {}> implements SimplifiedMap<TData> {
   };
 
   public delete = (key: string) => {
+    // если успешно удалилось в "слабом" хранилище, тогда в "сильном" уже не имеет смысла удалять.
     return this.weak.delete(key) || this.strong.delete(key);
   };
 
@@ -54,6 +64,9 @@ export class AdaptableMap<TData extends {}> implements SimplifiedMap<TData> {
     return Boolean(this.weak.get(key)) || this.strong.has(key);
   };
 
+  /**
+   * метод перемещающий значение из одного Map в другой
+   */
   private change = (
     key: string,
     from: SimplifiedMap<TData>,
@@ -67,10 +80,16 @@ export class AdaptableMap<TData extends {}> implements SimplifiedMap<TData> {
     }
   };
 
+  /**
+   * метод для конвертации значения в из "сильного" в "слабое" состояние
+   */
   public convertToWeak = (key: string) => {
     this.change(key, this.strong, this.weak);
   };
 
+  /**
+   * метод для конвертации значения в из "слабого" в "сильное" состояние
+   */
   public convertToStrong = (key: string) => {
     this.change(key, this.weak, this.strong);
   };

@@ -85,8 +85,8 @@ export abstract class QueryContainer<
    * console.log(query.isLoading); // не изменялся
    * console.log(query.isSuccess); // остался неизменным - true
    *
-   * console.log(query.backgroundStatus.isLoading); // переключался в true на момент обновления
-   * console.log(query.backgroundStatus.isSuccess); // true
+   * console.log(query.background.isLoading); // переключался в true на момент обновления
+   * console.log(query.background.isSuccess); // true
    *
    * @exception isBackground:false (а так же по умолчанию) background не доступен, и равен null
    * @exception Mutation не доступен в мутации и равен null
