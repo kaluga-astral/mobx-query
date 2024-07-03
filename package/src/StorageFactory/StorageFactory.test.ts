@@ -32,10 +32,11 @@ describe('StorageFactory', () => {
   });
 
   it('GetStorage создает стор при попытке получить данные', () => {
-    const createData = () => 'foo';
+    const data = {};
+    const createData = () => data;
     const sut = buildSut(createData);
 
-    expect(sut.getStorage('bar')).toBe('foo');
+    expect(sut.getStorage('bar')).toBe(data);
   });
 
   it('GetStorage отдает ранее созданную сущность при вызове получения с одинаковым ключом', () => {
