@@ -22,7 +22,7 @@ describe('StorageFactory', () => {
     const createData = () => {
       createDataSpy();
 
-      return 'foo';
+      return ['foo'];
     };
     const sut = buildSut(createData);
 
