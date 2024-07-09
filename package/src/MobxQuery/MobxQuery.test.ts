@@ -25,7 +25,7 @@ describe('MobxQuery', () => {
       () => Promise.resolve([]),
     );
 
-    expect(queryA === query).toBeFalsy();
+    expect(queryA).not.toBe(query);
   });
 
   it('Квери создаются те же самые, при одинаковом ключе', () => {
@@ -34,7 +34,18 @@ describe('MobxQuery', () => {
       Promise.resolve([]),
     );
 
-    expect(queryA === query).toBeTruthy();
+    expect(queryA).toBe(query);
+  });
+
+  it('Квери создаются разные, при разных режимах isBackground и одинаковых ключах', () => {
+    const { mobxQuery, queryA } = createMobx();
+    const query = mobxQuery.createInfiniteQuery(
+      ['foo'],
+      () => Promise.resolve([]),
+      { isBackground: true },
+    );
+
+    expect(queryA).not.toBe(query);
   });
 
   it('Квери созданный с "cache-first" то же самый, что и без политики', () => {
@@ -45,7 +56,7 @@ describe('MobxQuery', () => {
       { fetchPolicy: 'cache-first' },
     );
 
-    expect(queryA === query).toBeTruthy();
+    expect(queryA).toBe(query);
   });
 
   it('Квери создаются разные, при разных политиках и одинаковых ключах', () => {
@@ -61,7 +72,7 @@ describe('MobxQuery', () => {
       { fetchPolicy: 'network-only' },
     );
 
-    expect(queryB === queryC).toBeFalsy();
+    expect(queryB).not.toBe(queryC);
   });
 
   describe('При fetchPolicy="network-only"', () => {
@@ -80,7 +91,7 @@ describe('MobxQuery', () => {
         { fetchPolicy: 'network-only' },
       );
 
-      expect(queryA === queryB).toBeTruthy();
+      expect(queryA).toBe(queryB);
     });
 
     it('Квери создаются разные, если создаются с паузой', async () => {
@@ -100,7 +111,7 @@ describe('MobxQuery', () => {
         { fetchPolicy: 'network-only' },
       );
 
-      expect(queryA === queryB).toBeFalsy();
+      expect(queryA).not.toBe(queryB);
     });
   });
 

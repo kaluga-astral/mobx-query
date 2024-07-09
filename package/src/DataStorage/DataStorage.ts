@@ -1,14 +1,13 @@
 import { makeAutoObservable } from 'mobx';
 
-import type { CacheKey } from '../types';
 import { StorageFactory } from '../StorageFactory';
 
 /**
- * хранилище данных, предназначено для обеспечения единого интерфейса при работе с данными
+ * Хранилище данных, предназначено для обеспечения единого интерфейса при работе с данными
  */
 export class DataStorage<TData> {
   /**
-   * поле, отвечающее за непосредственное хранение данных
+   * Поле, отвечающее за непосредственное хранение данных
    */
   private internalData?: TData = undefined;
 
@@ -17,21 +16,21 @@ export class DataStorage<TData> {
   }
 
   /**
-   * флаг, отображающий наличие данных
+   * Флаг, отображающий наличие данных
    */
   public get hasData() {
     return Boolean(this.internalData);
   }
 
   /**
-   * метод для установки данных
+   * Метод для установки данных
    */
   public setData = (value: TData) => {
     this.internalData = value;
   };
 
   /**
-   * геттер данных
+   * Геттер данных
    */
   public get data() {
     return this.internalData;
@@ -39,7 +38,7 @@ export class DataStorage<TData> {
 }
 
 /**
- * фабрика ответственная за создание и хранение экземляров хранилищ
+ * Фабрика ответственная за создание и хранение экземляров хранилищ
  */
 export class DataStorageFactory extends StorageFactory<DataStorage<unknown>> {
   constructor() {
@@ -47,9 +46,9 @@ export class DataStorageFactory extends StorageFactory<DataStorage<unknown>> {
   }
 
   /**
-   * фабричный метод получения/создания инстанса хранилища по ключу
+   * Фабричный метод получения/создания инстанса хранилища по ключу
    */
-  public getStorage = <TData>(key: CacheKey[]) => {
-    return this.getInternalStorage(key) as DataStorage<TData>;
+  public getStorage = <TData>(keyHash: string) => {
+    return this.getInternalStorage(keyHash) as DataStorage<TData>;
   };
 }

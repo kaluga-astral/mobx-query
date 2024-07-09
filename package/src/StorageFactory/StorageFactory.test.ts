@@ -3,13 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { StorageFactory } from './StorageFactory';
 
 describe('StorageFactory', () => {
-  const buildSut = <TData>(createData: () => TData) => {
+  const buildSut = <TData extends {}>(createData: () => TData) => {
     class Factory extends StorageFactory<TData> {
       constructor() {
         super(createData);
       }
 
-      getStorage = (key: string[]) => {
+      getStorage = (key: string) => {
         return this.getInternalStorage(key);
       };
     }
@@ -22,27 +22,28 @@ describe('StorageFactory', () => {
     const createData = () => {
       createDataSpy();
 
-      return 'foo';
+      return ['foo'];
     };
     const sut = buildSut(createData);
 
     // эмулируем обращение к данным
-    JSON.stringify(sut.getStorage(['foo']));
+    JSON.stringify(sut.getStorage('foo'));
     expect(createDataSpy).toBeCalled();
   });
 
   it('GetStorage создает стор при попытке получить данные', () => {
-    const createData = () => 'foo';
+    const data = {};
+    const createData = () => data;
     const sut = buildSut(createData);
 
-    expect(sut.getStorage([''])).toBe('foo');
+    expect(sut.getStorage('bar')).toBe(data);
   });
 
   it('GetStorage отдает ранее созданную сущность при вызове получения с одинаковым ключом', () => {
     const sut = buildSut(() => ({}));
 
-    const dataA = sut.getStorage(['foo']);
-    const dataB = sut.getStorage(['foo']);
+    const dataA = sut.getStorage('foo');
+    const dataB = sut.getStorage('foo');
 
     expect(dataA).toBe(dataB);
   });
@@ -50,8 +51,8 @@ describe('StorageFactory', () => {
   it('GetStorage отдает разные сущности при вызове получения с разными ключами', () => {
     const sut = buildSut(() => ({}));
 
-    const dataA = sut.getStorage(['foo']);
-    const dataB = sut.getStorage(['bar']);
+    const dataA = sut.getStorage('foo');
+    const dataB = sut.getStorage('bar');
 
     expect(dataA).not.toBe(dataB);
   });

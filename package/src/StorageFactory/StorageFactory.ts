@@ -1,23 +1,24 @@
-import { type CacheKey } from '../types';
+import { AdaptableMap } from '../AdaptableMap';
 
-export abstract class StorageFactory<TStorage> {
+export abstract class StorageFactory<TStorage extends {}> {
+  private readonly adaptableMap = new AdaptableMap<TStorage>();
+
   protected constructor(private readonly createStorage: () => TStorage) {}
 
   /**
-   * Map хранящий инстансы хранилищ по хэшу ключа
+   * Фабричный метод получения/создания инстанса хранилища по ключу
    */
-  private storageMap = new Map<string, TStorage>();
+  public getInternalStorage = (keyHash: string) => {
+    const storage = this.adaptableMap.get(keyHash);
 
-  /**
-   * фабричный метод получения/создания инстанса хранилища по ключу
-   */
-  protected getInternalStorage = (key: CacheKey[]) => {
-    const keyHash = JSON.stringify(key);
+    if (!storage) {
+      const createdStorage = this.createStorage();
 
-    if (!this.storageMap.has(keyHash)) {
-      this.storageMap.set(keyHash, this.createStorage());
+      this.adaptableMap.set(keyHash, createdStorage);
+
+      return createdStorage;
     }
 
-    return this.storageMap.get(keyHash);
+    return storage;
   };
 }

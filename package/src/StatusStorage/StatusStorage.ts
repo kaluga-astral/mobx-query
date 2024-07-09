@@ -1,7 +1,6 @@
 import { makeObservable, observable } from 'mobx';
 
 import { StorageFactory } from '../StorageFactory';
-import { type CacheKey } from '../types';
 
 export class StatusStorage<TError> {
   constructor() {
@@ -14,22 +13,22 @@ export class StatusStorage<TError> {
   }
 
   /**
-   * флаг обозначающий загрузку данных
+   * Флаг обозначающий загрузку данных
    */
   public isLoading: boolean = false;
 
   /**
-   * флаг обозначающий, что последний запрос был зафейлен
+   * Флаг обозначающий, что последний запрос был зафейлен
    */
   public isError: boolean = false;
 
   /**
-   * данные о последней ошибке
+   * Данные о последней ошибке
    */
   public error?: TError = undefined;
 
   /**
-   * флаг, обозначающий успешность завершения последнего запроса
+   * Флаг, обозначающий успешность завершения последнего запроса
    */
   public isSuccess = false;
 }
@@ -39,7 +38,7 @@ export class StatusStorageFactory extends StorageFactory<StatusStorage<void>> {
     super(() => new StatusStorage());
   }
 
-  public getStorage = <TError>(key: CacheKey[]) => {
-    return this.getInternalStorage(key) as StatusStorage<TError>;
+  public getStorage = <TError>(keyHash: string) => {
+    return this.getInternalStorage(keyHash) as StatusStorage<TError>;
   };
 }

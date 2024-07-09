@@ -33,42 +33,42 @@ export abstract class QueryContainer<
   }
 
   /**
-   * флаг загрузки данных
+   * Флаг загрузки данных
    */
   public get isLoading() {
     return this.statusStorage.isLoading;
   }
 
   /**
-   * флаг обозначающий, что последний запрос был зафейлен
+   * Флаг обозначающий, что последний запрос был зафейлен
    */
   public get isError() {
     return this.statusStorage.isError;
   }
 
   /**
-   * данные о последней ошибке
+   * Данные о последней ошибке
    */
   public get error() {
     return this.statusStorage.error;
   }
 
   /**
-   * флаг обозначающий, что последний запрос был успешно завершен
+   * Флаг обозначающий, что последний запрос был успешно завершен
    */
   public get isSuccess() {
     return this.statusStorage.isSuccess;
   }
 
   /**
-   * флаг, обозначающий простаивание, т.е. запроса еще не было
+   * Флаг, обозначающий простаивание, т.е. запроса еще не было
    */
   public get isIdle() {
     return this.auxiliary.isIdle;
   }
 
   /**
-   * статусы, изменяющиеся после первого успешного запроса в режиме isBackground: true
+   * Статусы, изменяющиеся после первого успешного запроса в режиме isBackground: true
    * @example
    * const query = mobxQuery.createQuery(
    *     ['some cache key'],
@@ -85,8 +85,8 @@ export abstract class QueryContainer<
    * console.log(query.isLoading); // не изменялся
    * console.log(query.isSuccess); // остался неизменным - true
    *
-   * console.log(query.backgroundStatus.isLoading); // переключался в true на момент обновления
-   * console.log(query.backgroundStatus.isSuccess); // true
+   * console.log(query.background.isLoading); // переключался в true на момент обновления
+   * console.log(query.background.isSuccess); // true
    *
    * @exception isBackground:false (а так же по умолчанию) background не доступен, и равен null
    * @exception Mutation не доступен в мутации и равен null

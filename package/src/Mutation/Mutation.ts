@@ -6,7 +6,7 @@ import { QueryContainer } from '../QueryContainer';
 import { StatusStorage } from '../StatusStorage';
 
 /**
- * исполнитель запроса
+ * Исполнитель запроса
  */
 export type MutationExecutor<TResult, TParams> = (
   params: TParams,
@@ -14,13 +14,13 @@ export type MutationExecutor<TResult, TParams> = (
 
 export type MutationParams<TResult, TError> = {
   /**
-   * обработчик ошибки, вызываемый по умолчанию
+   * Обработчик ошибки, вызываемый по умолчанию
    */
   onError?: SyncParams<TResult, TError>['onError'];
 };
 
 /**
- * простой стор для запросов, которые не требуют кэширования,
+ * Простой квери для запросов, которые не требуют кэширования,
  * пример - POST запросы
  */
 export class Mutation<TResult, TError = void, TExecutorParams = void>
@@ -28,7 +28,7 @@ export class Mutation<TResult, TError = void, TExecutorParams = void>
   implements QueryBaseActions<TResult, TError, TExecutorParams>
 {
   /**
-   * обработчик ошибки, вызываемый по умолчанию
+   * Обработчик ошибки, вызываемый по умолчанию
    */
   private readonly defaultOnError?: SyncParams<TResult, TError>['onError'];
 
@@ -49,7 +49,7 @@ export class Mutation<TResult, TError = void, TExecutorParams = void>
   }
 
   /**
-   * синхронный метод получения/отправки данных
+   * Синхронный метод получения/отправки данных
    */
   public sync: Sync<TResult, TError, TExecutorParams> = (options) => {
     const { onSuccess, onError, params } = options || {};
@@ -69,7 +69,7 @@ export class Mutation<TResult, TError = void, TExecutorParams = void>
   };
 
   /**
-   * асинхронный метод получения/отправки данных,
+   * Асинхронный метод получения/отправки данных,
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = (params: TExecutorParams) => {

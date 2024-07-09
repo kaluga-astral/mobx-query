@@ -7,7 +7,7 @@ import { QueryContainer } from '../QueryContainer';
 import { type StatusStorage } from '../StatusStorage';
 
 /**
- * исполнитель запроса
+ * Исполнитель запроса
  */
 export type QueryExecutor<TResult> = () => Promise<TResult>;
 
@@ -17,32 +17,41 @@ export type QueryParams<
   TIsBackground extends boolean = false,
 > = {
   /**
-   * обработчик ошибки, вызываемый по умолчанию
+   * Обработчик ошибки, вызываемый по умолчанию
    */
   onError?: SyncParams<TResult, TError>['onError'];
   /**
-   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * Флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   enabledAutoFetch?: boolean;
+  /**
+   * Политика получения данных.
+   * @enum cache-first - данные сначала берутся из кеша, если их нет, тогда идет обращение к сети, ответ записывается в кэш
+   * @enum network-only - данные всегда берутся из сети, при этом ответ записывается в кэш
+   */
   fetchPolicy?: FetchPolicy;
   /**
-   * инстанс хранилища данных
+   * Инстанс хранилища данных
    */
   dataStorage: DataStorage<TResult>;
   /**
-   * инстанс хранилища основных статусов
+   * Инстанс хранилища основных статусов
    */
   statusStorage: StatusStorage<TError>;
   /**
-   * инстанс хранилища фоновых статусов
+   * Инстанс хранилища фоновых статусов
    */
   backgroundStatusStorage?: TIsBackground extends true
     ? StatusStorage<TError>
     : null | undefined;
+  /**
+   * Колбэк, вызываемый при успешном завершении запроса, подразумевается использование, для подтверждения валидности данных, чтобы квери не был удален из памяти
+   */
+  submitValidity?: () => void;
 };
 
 /**
- * стор для работы с запросами,
+ * Стор для работы с запросами,
  * которые должны быть закешированы,
  * но им не требуется усложнение в виде работы с фильтрами и инфинити запросами
  */
@@ -55,24 +64,29 @@ export class Query<
   implements QueryBaseActions<TResult, TError, undefined>
 {
   /**
-   * хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
+   * Хранилище данных, для обеспечения возможности синхронизации данных между разными инстансами
    */
   private storage: DataStorage<TResult>;
 
   /**
-   * обработчик ошибки, вызываемый по умолчанию
+   * Обработчик ошибки, вызываемый по умолчанию
    */
   private defaultOnError?: SyncParams<TResult, TError>['onError'];
 
   /**
-   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * Флаг, отвечающий за автоматический запрос данных при обращении к полю data
    */
   private enabledAutoFetch?: boolean;
 
   /**
-   * стандартное поведение политики кеширования
+   * Стандартное поведение политики кеширования
    */
   private readonly defaultFetchPolicy?: FetchPolicy;
+
+  /**
+   * Колбэк, вызываемый при успешном завершении запроса, подразумевается использование, для подтверждения валидности данных, чтобы квери не был удален из памяти
+   */
+  private readonly submitValidity?: () => void;
 
   constructor(
     private readonly executor: QueryExecutor<TResult>,
@@ -83,6 +97,7 @@ export class Query<
       dataStorage,
       statusStorage,
       backgroundStatusStorage = null,
+      submitValidity,
     }: QueryParams<TResult, TError, TIsBackground>,
   ) {
     super(
@@ -98,6 +113,7 @@ export class Query<
     this.enabledAutoFetch = enabledAutoFetch;
     this.defaultFetchPolicy = fetchPolicy;
     this.storage = dataStorage;
+    this.submitValidity = submitValidity;
 
     makeObservable(this as ThisType<this>, {
       async: action,
@@ -113,14 +129,14 @@ export class Query<
   }
 
   /**
-   * метод для инвалидации данных
+   * Метод для инвалидации данных
    */
   public invalidate = () => {
     this.auxiliary.invalidate();
   };
 
   /**
-   * синхронный метод получения данных
+   * Синхронный метод получения данных
    */
   public sync: Sync<TResult, TError, undefined> = (params) => {
     const isInstanceAllow = !(this.isLoading || this.isSuccess);
@@ -131,16 +147,17 @@ export class Query<
   };
 
   /**
-   * обработчик успешного ответа
+   * Обработчик успешного ответа
    */
   private submitSuccess = (resData: TResult) => {
     this.storage.setData(resData);
+    this.submitValidity?.();
 
     return resData;
   };
 
   /**
-   * форс метод для установки данных
+   * Форс метод для установки данных
    */
   public forceUpdate = (data: TResult) => {
     this.auxiliary.submitSuccess();
@@ -148,7 +165,7 @@ export class Query<
   };
 
   /**
-   * метод для переиспользования синхронной логики запроса
+   * Метод для переиспользования синхронной логики запроса
    */
   protected proceedSync: Sync<TResult, TError> = (options) => {
     const { onSuccess, onError } = options || {};
@@ -169,7 +186,7 @@ export class Query<
   };
 
   /**
-   * асинхронный метод получения данных,
+   * Асинхронный метод получения данных,
    * предполагается, что нужно будет самостоятельно обрабатывать ошибку
    */
   public async = () => {
@@ -183,7 +200,7 @@ export class Query<
   };
 
   /**
-   * содержит реактивные данные
+   * Содержит реактивные данные
    * благодаря mobx, при изменении isInvalid, свойство будет вычисляться заново,
    * следовательно, стриггерится условие невалидности,
    * и начнется запрос, в результате которого, данные обновятся

@@ -82,6 +82,18 @@ describe('InfiniteQuery', () => {
       expect(query.isSuccess).toBeTruthy();
       expect(query.isError).toBeFalsy();
     });
+
+    it('Квери вызывает переданный submitValidity при успешном запросе', async () => {
+      const submitSpy = vi.fn();
+      const query = new InfiniteQuery(() => Promise.resolve(['foo']), {
+        dataStorage: getDataStorage(),
+        statusStorage: getStatusStorage(),
+        submitValidity: submitSpy,
+      });
+
+      await query.async();
+      expect(submitSpy).toBeCalled();
+    });
   });
 
   describe('При провальном запросе', () => {
