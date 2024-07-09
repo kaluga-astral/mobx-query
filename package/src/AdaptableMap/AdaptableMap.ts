@@ -12,6 +12,7 @@ class WeakRefMap<TData extends {}> implements SimplifiedMap<TData> {
   private readonly map = new Map<string, WeakRef<TData> | TData>();
 
   public get = (key: string) => {
+    // Проверка на старые браузеры, не умеющие в WeakRef
     if (!globalThis.WeakRef) {
       return this.map.get(key) as TData | undefined;
     }
@@ -20,6 +21,7 @@ class WeakRefMap<TData extends {}> implements SimplifiedMap<TData> {
   };
 
   public set = (key: string, value: TData) => {
+    // Проверка на старые браузеры, не умеющие в WeakRef
     if (!globalThis.WeakRef) {
       this.map.set(key, value);
     } else {
