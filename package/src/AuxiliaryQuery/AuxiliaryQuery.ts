@@ -3,14 +3,14 @@ import { action, makeObservable, observable, runInAction } from 'mobx';
 import { type StatusStorage } from '../StatusStorage';
 
 /**
- * испольнитель запроса
+ * Испольнитель запроса
  */
 type Executor<TResult> = () => Promise<TResult>;
 
 type SetStorage<TError> = (storage: StatusStorage<TError>) => void;
 
 /**
- * вспомогательное хранилище данных, для композиции в Query сторах,
+ * Вспомогательное хранилище данных, для композиции в Query сторах,
  * содержащее флаги загрузки и ошибки,
  * колбэки на успешный запрос и на ошибку,
  * данные последней ошибки,
@@ -18,17 +18,17 @@ type SetStorage<TError> = (storage: StatusStorage<TError>) => void;
  */
 export class AuxiliaryQuery<TResult, TError = void> {
   /**
-   * флаг, обозначающий простаивание, т.е. запроса еще не было
+   * Флаг, обозначающий простаивание, т.е. запроса еще не было
    */
   public isIdle = true;
 
   /**
-   * единый промис, для устранения гонки запросов
+   * Единый промис, для устранения гонки запросов
    */
   private unifiedPromise?: Promise<TResult>;
 
   /**
-   * флаг, по которому реактивно определяется необходимость запуска инвалидации
+   * Флаг, по которому реактивно определяется необходимость запуска инвалидации
    */
   public isInvalid: boolean = false;
 
@@ -51,7 +51,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   }
 
   /**
-   * метод ответственный за создание единого промиса,
+   * Метод ответственный за создание единого промиса,
    * для устранения гонки запросов
    */
   public getUnifiedPromise = (executor: Executor<TResult>) => {
@@ -98,7 +98,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   };
 
   /**
-   * обработчик успешного ответа
+   * Обработчик успешного ответа
    */
   public submitSuccess = () => {
     this.checkBackgroundAndSet(this.setSuccess);
@@ -112,7 +112,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   };
 
   /**
-   * обработчик ошибки
+   * Обработчик ошибки
    */
   public submitError = (error: TError) => {
     this.checkBackgroundAndSet((storage) => this.setError(storage, error));
@@ -125,7 +125,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   };
 
   /**
-   * метод, вызываемый в самом начале запроса, чтобы сбросить флаги в соответствующее значение
+   * Метод, вызываемый в самом начале запроса, чтобы сбросить флаги в соответствующее значение
    */
   public startLoading = () => {
     this.isIdle = false;
@@ -133,7 +133,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
   };
 
   /**
-   * метод для инвалидации данных
+   * Метод для инвалидации данных
    */
   public invalidate = () => {
     this.isInvalid = true;

@@ -15,24 +15,24 @@ import { type StatusStorage, StatusStorageFactory } from '../StatusStorage';
 import { AdaptableMap } from '../AdaptableMap';
 
 /**
- * время, спустя которое, запись о query c network-only будет удалена
+ * Время, спустя которое, запись о query c network-only будет удалена
  */
 const DEFAULT_TIME_TO_CLEAN = 100;
 
 /**
- * стандартный обработчик ошибки запроса,
+ * Стандартный обработчик ошибки запроса,
  * будет вызван, если при вызове sync не был передан отдельный onError параметр
  */
 type OnError<TError = unknown> = (error: TError) => void;
 
 /**
- * хэш ключа
+ * Хэш ключа
  */
 type KeyHash = string;
 
 type MobxQueryParams = {
   /**
-   * политика получения данных по умолчанию.
+   * Политика получения данных по умолчанию.
    * @enum cache-first - данные сначала берутся из кеша, если их нет, тогда идет обращение к сети, ответ записывается в кэш
    * @enum network-only - данные всегда берутся из сети, при этом ответ записывается в кэш
    */
@@ -42,7 +42,7 @@ type MobxQueryParams = {
    */
   onError?: OnError;
   /**
-   * флаг, отвечающий за автоматический запрос данных при обращении к полю data по умолчанию.
+   * Флаг, отвечающий за автоматический запрос данных при обращении к полю data по умолчанию.
    * @default false
    */
   enabledAutoFetch?: boolean;
@@ -53,7 +53,7 @@ type CreateQueryParams<TResult, TError, TIsBackground extends boolean> = Omit<
   'dataStorage' | 'statusStorage' | 'backgroundStatusStorage' | 'submitValidity'
 > & {
   /**
-   * режим фонового обновления
+   * Режим фонового обновления
    * @default false
    */
   isBackground?: TIsBackground;
@@ -68,7 +68,7 @@ type CreateInfiniteQueryParams<
   'dataStorage' | 'statusStorage' | 'backgroundStatusStorage' | 'submitValidity'
 > & {
   /**
-   * режим фонового обновления
+   * Режим фонового обновления
    * @default false
    */
   isBackground?: TIsBackground;
@@ -77,14 +77,14 @@ type CreateInfiniteQueryParams<
 type QueryType = typeof Query.name | typeof InfiniteQuery.name;
 
 /**
- * внутриний тип кешируемого стора
+ * Внутриний тип кешируемого стора
  */
 type CachedQuery<TResult, TError, TIsBackground extends boolean> =
   | Query<TResult, TError, TIsBackground>
   | InfiniteQuery<TResult, TError, TIsBackground>;
 
 /**
- * параметры поддающиеся установке значению по умолчанию
+ * Параметры поддающиеся установке значению по умолчанию
  */
 type FallbackAbleCreateParams<TResult, TError, TIsBackground extends boolean> =
   | Pick<
@@ -97,7 +97,7 @@ type FallbackAbleCreateParams<TResult, TError, TIsBackground extends boolean> =
     >;
 
 /**
- * внутренний объединяющий тип параметров создания квери расчитываемых внутренней логикой
+ * Внутренний объединяющий тип параметров создания квери расчитываемых внутренней логикой
  */
 type InternalCreateQueryParams<
   TResult,
@@ -130,7 +130,7 @@ type InternalCreateQueryParams<
  */
 export class MobxQuery<TDefaultError = void> {
   /**
-   * объект соответствия хешей ключей и их значений
+   * Объект соответствия хешей ключей и их значений
    */
   private keys = new Map<KeyHash, CacheKey[]>();
 
@@ -140,27 +140,27 @@ export class MobxQuery<TDefaultError = void> {
   private queriesMap = new AdaptableMap<CachedQuery<unknown, unknown, false>>();
 
   /**
-   * фабрика создания хранилищ данных для обычного Query
+   * Фабрика создания хранилищ данных для обычного Query
    */
   private queryDataStorageFactory = new DataStorageFactory();
 
   /**
-   * фабрика создания хранилищ статусов между экземплярами Query и экземллярами Infinite Query.
+   * Фабрика создания хранилищ статусов между экземплярами Query и экземллярами Infinite Query.
    */
   private statusStorageFactory = new StatusStorageFactory();
 
   /**
-   * стандартный обработчик ошибок, будет использован, если не передан другой
+   * Стандартный обработчик ошибок, будет использован, если не передан другой
    */
   private readonly defaultErrorHandler?: OnError;
 
   /**
-   * стандартное поведение политики кеширования
+   * Стандартное поведение политики кеширования
    */
   private readonly defaultFetchPolicy: FetchPolicy;
 
   /**
-   * флаг, отвечающий за автоматический запрос данных при обращении к полю data
+   * Флаг, отвечающий за автоматический запрос данных при обращении к полю data
    * @default false
    */
   private readonly defaultEnabledAutoFetch: boolean;
@@ -178,11 +178,11 @@ export class MobxQuery<TDefaultError = void> {
   }
 
   /**
-   * метод для инвалидации по списку ключей,
+   * Метод для инвалидации по списку ключей,
    * предполагается использование из домена
    */
   public invalidate = (keysParts: CacheKey[]) => {
-    // сет сериализовонных ключей
+    // Сет сериализовонных ключей
     const keysSet = new Set(keysParts.map(this.serialize));
 
     [...this.keys.keys()].forEach((keyHash) => {
@@ -192,7 +192,7 @@ export class MobxQuery<TDefaultError = void> {
         return;
       }
 
-      // проверяем, есть ли пересечение между закешированными ключами и набором ключей для инвалидации
+      // Проверяем, есть ли пересечение между закешированными ключами и набором ключей для инвалидации
       const hasTouchedElement = key.some((valuePart) =>
         keysSet.has(this.serialize(valuePart)),
       );
@@ -202,7 +202,7 @@ export class MobxQuery<TDefaultError = void> {
 
         if (query) {
           query.invalidate();
-          // конвертируем инвалидированный квери в слабый,
+          // Конвертируем инвалидированный квери в слабый,
           // чтобы сборщик мусора мог удалить неиспользуемые квери
           this.queriesMap.convertToWeak(keyHash);
         }
@@ -210,7 +210,7 @@ export class MobxQuery<TDefaultError = void> {
     });
   };
 
-  // метод для подтверждения того, что квери успешно получил валидные данные
+  // Метод для подтверждения того, что квери успешно получил валидные данные
   private submitValidity = (keyHash: KeyHash) => {
     // конвертируем квери в сильный,
     // чтобы сборщик мусора не удалил наш кеш преждевременно
@@ -218,7 +218,7 @@ export class MobxQuery<TDefaultError = void> {
   };
 
   /**
-   * метод инвалидации всех query
+   * Метод инвалидации всех query
    */
   public invalidateQueries = () => {
     [...this.keys.keys()].forEach((keyHash) => {
@@ -228,7 +228,7 @@ export class MobxQuery<TDefaultError = void> {
   };
 
   /**
-   * метод, который занимается проверкой наличия квери по ключу,
+   * Метод, который занимается проверкой наличия квери по ключу,
    * и если нет, создает новый, добавляет его к себе в память, и возвращает его пользователю
    */
   private getCachedQuery = <TResult, TError, TIsBackground extends boolean>(
@@ -300,7 +300,7 @@ export class MobxQuery<TDefaultError = void> {
   };
 
   /**
-   * метод для создания ключей к внутренним хранилищам
+   * Метод для создания ключей к внутренним хранилищам
    */
   private makeKeys = (
     rootKey: CacheKey[],
@@ -335,7 +335,7 @@ export class MobxQuery<TDefaultError = void> {
       : null) as TIsBackground extends true ? StatusStorage<TError> : null;
 
   /**
-   * метод создания стора, кешируется
+   * Метод создания стора, кешируется
    */
   public createQuery = <
     TResult,
@@ -359,7 +359,7 @@ export class MobxQuery<TDefaultError = void> {
     ) as Query<TResult, TError, TIsBackground>;
 
   /**
-   * метод создания инфинит стора, кешируется
+   * Метод создания инфинит стора, кешируется
    */
   public createInfiniteQuery = <
     TResult,
@@ -383,7 +383,7 @@ export class MobxQuery<TDefaultError = void> {
     ) as InfiniteQuery<TResult, TError, TIsBackground>;
 
   /**
-   * метод создания мутации, не кешируется
+   * Метод создания мутации, не кешируется
    */
   public createMutation = <
     TResult,

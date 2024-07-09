@@ -6,7 +6,7 @@ export abstract class StorageFactory<TStorage extends {}> {
   protected constructor(private readonly createStorage: () => TStorage) {}
 
   /**
-   * фабричный метод получения/создания инстанса хранилища по ключу
+   * Фабричный метод получения/создания инстанса хранилища по ключу
    */
   public getInternalStorage = (keyHash: string) => {
     const storage = this.adaptableMap.get(keyHash);
