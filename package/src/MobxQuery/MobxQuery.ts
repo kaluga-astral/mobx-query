@@ -97,7 +97,7 @@ type FallbackAbleCreateParams<TResult, TError, TIsBackground extends boolean> =
     >;
 
 /**
- * Внутренний объединяющий тип параметров создания квери расчитываемых внутренней логикой
+ * Объединяющий тип параметров рассчитываемых внутренней логикой для создания квери
  */
 type InternalCreateQueryParams<
   TResult,
