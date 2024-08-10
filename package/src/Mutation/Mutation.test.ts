@@ -101,6 +101,7 @@ describe('Mutation', () => {
     });
 
     sut.sync();
+    await when(() => !sut.isLoading);
     expect(spyOnError).toBeCalledWith('foo');
   });
 
