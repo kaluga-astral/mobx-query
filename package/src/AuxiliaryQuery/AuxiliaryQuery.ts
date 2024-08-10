@@ -54,7 +54,10 @@ export class AuxiliaryQuery<TResult, TError = void> {
    * Метод ответственный за создание единого промиса,
    * для устранения гонки запросов
    */
-  public getUnifiedPromise = (executor: Executor<TResult>) => {
+  public getUnifiedPromise = (
+    executor: Executor<TResult>,
+    onSuccess?: (data: TResult) => void,
+  ) => {
     // проверяем, если синглтона нет, то надо создать
     if (!Boolean(this.unifiedPromise)) {
       this.startLoading();
@@ -62,6 +65,7 @@ export class AuxiliaryQuery<TResult, TError = void> {
       this.unifiedPromise = executor()
         .then((resData: TResult) => {
           runInAction(this.submitSuccess);
+          onSuccess?.(resData);
 
           return resData;
         })

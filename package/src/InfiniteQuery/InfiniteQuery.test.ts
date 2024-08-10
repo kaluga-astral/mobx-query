@@ -16,15 +16,15 @@ describe('InfiniteQuery', () => {
       statusStorage: getStatusStorage(),
     });
 
-    it('флаг загрузки false', () => {
+    it('Флаг загрузки false', () => {
       expect(query.isLoading).toBeFalsy();
     });
 
-    it('флаг ошибки false', () => {
+    it('Флаг ошибки false', () => {
       expect(query.isError).toBeFalsy();
     });
 
-    it('флаг успеха false', () => {
+    it('Флаг успеха false', () => {
       expect(query.isSuccess).toBeFalsy();
     });
 
@@ -32,11 +32,11 @@ describe('InfiniteQuery', () => {
       expect(query.isIdle).toBeTruthy();
     });
 
-    it('data undefined', () => {
+    it('Значение data undefined', () => {
       expect(query.data).toBeUndefined();
     });
 
-    it('данные ошибки undefined', () => {
+    it('Данные ошибки undefined', () => {
       expect(query.error).toBeUndefined();
     });
   });
@@ -253,6 +253,32 @@ describe('InfiniteQuery', () => {
 
       // ожидаем, что число изменилось
       expect(secondValue !== firstValue).toBeTruthy();
+    });
+
+    it('Обращение к данным при одновременном вызове fetchMore вызывает только одно исполнение executor', async () => {
+      const executorSpy = vi.fn();
+      const query = new InfiniteQuery(
+        () => {
+          executorSpy();
+
+          return Promise.resolve(['foo']);
+        },
+        {
+          dataStorage: getDataStorage(),
+          statusStorage: getStatusStorage(),
+          enabledAutoFetch: true,
+        },
+      );
+
+      // эмулируем считывание данных
+      JSON.stringify(query.data);
+      await when(() => !query.isLoading);
+      query.invalidate();
+      // эмулируем считывание данных
+      JSON.stringify(query.data);
+      query.fetchMore();
+      await when(() => !query.isLoading);
+      expect(executorSpy).toBeCalledTimes(2);
     });
   });
 
