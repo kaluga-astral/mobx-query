@@ -15,11 +15,6 @@ import { type StatusStorage, StatusStorageFactory } from '../StatusStorage';
 import { AdaptableMap } from '../AdaptableMap';
 
 /**
- * Время, спустя которое, запись о query c network-only будет удалена
- */
-const DEFAULT_TIME_TO_CLEAN = 100;
-
-/**
  * Стандартный обработчик ошибки запроса,
  * будет вызван, если при вызове sync не был передан отдельный onError параметр
  */
@@ -182,7 +177,7 @@ export class MobxQuery<TDefaultError = void> {
    * предполагается использование из домена
    */
   public invalidate = (keysParts: CacheKey[]) => {
-    // Сет сериализовонных ключей
+    // Сет сериализованных ключей
     const keysSet = new Set(keysParts.map(this.serialize));
 
     [...this.keys.keys()].forEach((keyHash) => {
@@ -272,7 +267,13 @@ export class MobxQuery<TDefaultError = void> {
         keys.backgroundStatusKeyHash,
         Boolean(createParams?.isBackground) as TIsBackground,
       ),
-      submitValidity: () => this.submitValidity(keys.queryKeyHash),
+      submitValidity:
+        // 'network-only' квери не будут подтверждать свою валидность,
+        // следовательно, они всегда будут храниться как "слабые",
+        // что позволит сборщику мусора удалять их из памяти при отсутствии ссылок
+        fetchPolicy !== 'network-only'
+          ? () => this.submitValidity(keys.queryKeyHash)
+          : undefined,
     });
 
     this.queriesMap.set(
@@ -281,20 +282,6 @@ export class MobxQuery<TDefaultError = void> {
     );
 
     this.keys.set(keys.queryKeyHash, keys.queryKey);
-
-    // Ожидается, что network-only квери не должны кешироваться,
-    // но, с введением StrictMode в реакт 18, проявилась проблема,
-    // что network-only квери, созданные в одном реакт компоненте,
-    // создаются дважды (т.к. все хуки вызываются дважды)
-    // и т.к. мы не ограничиваем момент запроса,
-    // то можем получить эффект, что оба network-only квери
-    // делают по отдельному запросу к данным единомоментно,
-    if (fetchPolicy === 'network-only') {
-      setTimeout(() => {
-        this.queriesMap.delete(keys.queryKeyHash);
-        this.keys.delete(keys.queryKeyHash);
-      }, DEFAULT_TIME_TO_CLEAN);
-    }
 
     return query;
   };
@@ -308,7 +295,21 @@ export class MobxQuery<TDefaultError = void> {
     isBackground: boolean,
     type: QueryType,
   ) => {
-    const queryKey = [...rootKey, { fetchPolicy, isBackground, type }];
+    // C введением StrictMode в реакт 18, проявилась проблема,
+    // что network-only квери, созданные в одном реакт компоненте,
+    // создаются дважды (т.к. все хуки вызываются дважды)
+    // и т.к. мы не ограничиваем момент запроса,
+    // то можем получить эффект, что оба network-only квери
+    // делают по отдельному запросу к данным единомоментно.
+    // Для решения этой проблемы, добавляем уникальный ключ даты, с обнуляемыми милисекундами,
+    // что позволит создавать одинаковые network-only квери в течении одной секунды.
+    // Остается крайне редкий корнер кейс, когда разница между созданиями квери крайне мала,
+    // но все таки первый был создан в одной секунде, а последующее создание уже попало в следующую секунду.
+    // Этот кейс крайне маловероятен, и будет проявляться только в дев режиме с включенным StrictMode,
+    // поэтому мы пренебрегаем решением этой проблемы, в угоду упрощения.
+    const date =
+      fetchPolicy === 'network-only' ? new Date().setMilliseconds(0) : null;
+    const queryKey = [...rootKey, { fetchPolicy, date, isBackground, type }];
     const queryKeyHash = this.serialize(queryKey);
     const dataKeyHash = this.serialize([...rootKey, { type }]);
     const statusKeyHash = this.serialize([...rootKey, { type }]);
