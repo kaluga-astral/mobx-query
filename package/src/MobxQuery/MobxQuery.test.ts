@@ -115,6 +115,26 @@ describe('MobxQuery', () => {
 
       expect(queryA).not.toBe(queryB);
     });
+
+    it('Квери инвалидируется', async () => {
+      const executorSpy = vi.fn();
+      const { mobxQuery } = createMobx();
+      const query = mobxQuery.createInfiniteQuery(
+        ['foo'],
+        () => {
+          executorSpy();
+
+          return Promise.resolve([]);
+        },
+        { fetchPolicy: 'network-only', enabledAutoFetch: true },
+      );
+
+      await query.async();
+      mobxQuery.invalidate(['foo']);
+      JSON.stringify(query.data);
+      await when(() => !query.isLoading);
+      expect(executorSpy).toBeCalledTimes(2);
+    });
   });
 
   describe('При вызове инвалидации', async () => {
