@@ -55,10 +55,12 @@ export class Mutation<TResult, TError = void, TExecutorParams = void>
     const { onSuccess, onError, params } = options || {};
 
     this.auxiliary
-      .getUnifiedPromise(() => this.executor(params as TExecutorParams))
-      .then((resData) => {
-        onSuccess?.(resData);
-      })
+      .getUnifiedPromise(
+        () => this.executor(params as TExecutorParams),
+        (resData) => {
+          onSuccess?.(resData);
+        },
+      )
       .catch((e: TError) => {
         if (onError) {
           onError(e);

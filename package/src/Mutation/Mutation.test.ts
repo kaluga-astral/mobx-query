@@ -5,106 +5,117 @@ import { Mutation } from './Mutation';
 
 describe('Mutation', () => {
   it('Флаг простаивания true при начальном состоянии', () => {
-    const query = new Mutation(() => Promise.resolve('foo'));
+    const sut = new Mutation(() => Promise.resolve('foo'));
 
-    expect(query.isIdle).toBeTruthy();
+    expect(sut.isIdle).toBeTruthy();
   });
 
   it('Флаг простаивания false сразу после запуска запроса', () => {
-    const query = new Mutation(() => Promise.resolve('foo'));
+    const sut = new Mutation(() => Promise.resolve('foo'));
 
-    query.sync();
-    expect(query.isIdle).toBeFalsy();
+    sut.sync();
+    expect(sut.isIdle).toBeFalsy();
   });
 
-  it('Init state: флаги false, данные undefined', () => {
-    const store = new Mutation(() => Promise.resolve('foo'));
+  it('isLoading равен false при старте', () => {
+    const sut = new Mutation(() => Promise.resolve('foo'));
 
-    expect(store.isError).toBeFalsy();
-    expect(store.isLoading).toBeFalsy();
-    expect(store.error).toBeUndefined();
+    expect(sut.isLoading).toBeFalsy();
   });
 
-  it('sync: стандартная загрузка успешна', async () => {
-    const onSyncSuccess = vi.fn();
-    const store = new Mutation(() => Promise.resolve('foo'));
+  it('isError равен false при старте', () => {
+    const sut = new Mutation(() => Promise.resolve('foo'));
 
-    store.sync({ onSuccess: onSyncSuccess });
-    expect(store.isLoading).toBeTruthy();
-    await when(() => !store.isLoading);
-    expect(onSyncSuccess).toBeCalledWith('foo');
-    expect(store.isLoading).toBeFalsy();
+    expect(sut.isError).toBeFalsy();
   });
 
-  it('async: стандартная загрузка успешна', async () => {
-    const onAsyncSuccess = vi.fn();
-    const store = new Mutation(() => Promise.resolve('foo'));
+  it('error равен undefined при старте', () => {
+    const sut = new Mutation(() => Promise.resolve('foo'));
 
-    await store.async().then(onAsyncSuccess);
-    expect(onAsyncSuccess).toBeCalledWith('foo');
-    expect(store.isLoading).toBeFalsy();
+    expect(sut.error).toBeUndefined();
   });
 
-  it('sync: При вызове передаются параметры', async () => {
-    const callBack = vi.fn();
-    const store = new Mutation((params: string) => {
-      callBack(params);
+  it('Вызов sync приводит к загрузке данных', async () => {
+    const spyOnSyncSuccess = vi.fn();
+    const sut = new Mutation(() => Promise.resolve('foo'));
+
+    sut.sync({ onSuccess: spyOnSyncSuccess });
+    expect(sut.isLoading).toBeTruthy();
+    await when(() => !sut.isLoading);
+    expect(spyOnSyncSuccess).toBeCalledWith('foo');
+    expect(sut.isLoading).toBeFalsy();
+  });
+
+  it('Вызов async приводит к загрузке данных', async () => {
+    const spyOnAsyncSuccess = vi.fn();
+    const sut = new Mutation(() => Promise.resolve('foo'));
+
+    await sut.async().then(spyOnAsyncSuccess);
+    await when(() => !sut.isLoading);
+    expect(spyOnAsyncSuccess).toBeCalledWith('foo');
+    expect(sut.isLoading).toBeFalsy();
+  });
+
+  it('Вызов sync вызывает executor c переданными параметрами', async () => {
+    const executorSpy = vi.fn();
+    const sut = new Mutation((params: string) => {
+      executorSpy(params);
 
       return Promise.resolve('foo');
     });
 
-    store.sync({ params: 'bar' });
-    await when(() => !store.isLoading);
-    expect(callBack).toBeCalledWith('bar');
+    sut.sync({ params: 'bar' });
+    await when(() => !sut.isLoading);
+    expect(executorSpy).toBeCalledWith('bar');
   });
 
-  it('async: При вызове передаются параметры', async () => {
-    const callBack = vi.fn();
-    const store = new Mutation((params: string) => {
-      callBack(params);
+  it('Вызов async вызывает executor с переданными параметрами', async () => {
+    const spyExecutor = vi.fn();
+    const sut = new Mutation((params: string) => {
+      spyExecutor(params);
 
       return Promise.resolve('foo');
     });
 
-    await store.async('bar');
-    expect(callBack).toBeCalledWith('bar');
+    await sut.async('bar');
+    expect(spyExecutor).toBeCalledWith('bar');
   });
 
-  it('sync: при провальном запросе вызывается onError', async () => {
-    const store = new Mutation(() => Promise.reject('foo'));
+  it('onError вызывается c данными ошибки при провальном запросе', async () => {
+    const spyOnError = vi.fn();
+    const sut = new Mutation(() => Promise.reject('foo'));
 
-    store.sync({
-      onError: (e) => {
-        expect(store.isLoading).toBeFalsy();
-        expect(store.isError).toBeTruthy();
-        expect(e).toBe('foo');
-      },
+    sut.sync({
+      onError: spyOnError,
     });
+
+    await when(() => !sut.isLoading);
+    expect(spyOnError).toBeCalledWith('foo');
   });
 
-  it('sync: при провальном запросе вызывается стандартный onError', async () => {
-    const store = new Mutation(() => Promise.reject('foo'), {
-      onError: (e) => {
-        expect(store.isLoading).toBeFalsy();
-        expect(store.isError).toBeTruthy();
-        expect(e).toBe('foo');
-      },
+  it('Стандартный onError вызывается с данными ошибки при провальном запросе', async () => {
+    const spyOnError = vi.fn();
+
+    const sut = new Mutation(() => Promise.reject('foo'), {
+      onError: spyOnError,
     });
 
-    store.sync();
+    sut.sync();
+    await when(() => !sut.isLoading);
+    expect(spyOnError).toBeCalledWith('foo');
   });
 
-  it('async: При провальном запросе вызывается не вызывается стандартный onError', async () => {
-    const onDefaultError = vi.fn();
-    const onAsyncError = vi.fn();
-    const store = new Mutation(() => Promise.reject('foo'), {
-      onError: onDefaultError,
+  it('Стандартный onError не вызывается при использовании дополнительного', async () => {
+    const spyOnDefaultError = vi.fn();
+    const spyOnAsyncError = vi.fn();
+    const sut = new Mutation(() => Promise.reject('foo'), {
+      onError: spyOnDefaultError,
     });
 
-    await store.async().catch(onAsyncError);
-    expect(store.isError).toBeTruthy();
-    expect(onAsyncError).toBeCalledWith('foo');
-    expect(onDefaultError).not.toBeCalled();
+    await sut.async().catch(spyOnAsyncError);
+    await when(() => !sut.isLoading);
+    expect(spyOnAsyncError).toBeCalledWith('foo');
+    expect(spyOnDefaultError).not.toBeCalled();
   });
 
   it('Модель фоновых статусов background равен null', () => {

@@ -233,10 +233,10 @@ export class InfiniteQuery<
 
       // запускаем запрос с последними параметрами, и флагом необходимости инкремента
       this.auxiliary
-        .getUnifiedPromise(this.infiniteExecutor)
-        .then((resData) => {
+        .getUnifiedPromise(this.infiniteExecutor, (resData) => {
           this.submitSuccess(resData, undefined, true);
-        });
+        })
+        .catch((e) => this.defaultOnError?.(e));
     }
   };
 
@@ -262,8 +262,7 @@ export class InfiniteQuery<
     this.isEndReached = false;
 
     this.auxiliary
-      .getUnifiedPromise(this.infiniteExecutor)
-      .then((resData) => {
+      .getUnifiedPromise(this.infiniteExecutor, (resData) => {
         this.submitSuccess(resData, onSuccess);
       })
       .catch((e: TError) => {
@@ -289,18 +288,10 @@ export class InfiniteQuery<
     this.offset = 0;
     this.isEndReached = false;
 
-    return this.auxiliary
-      .getUnifiedPromise(this.infiniteExecutor)
-      .then((resData) => {
-        this.submitSuccess(resData);
-
-        return resData;
-      })
-      .catch((e) => {
-        this.auxiliary.submitError(e);
-
-        throw e;
-      });
+    return this.auxiliary.getUnifiedPromise(
+      this.infiniteExecutor,
+      this.submitSuccess,
+    );
   };
 
   /**

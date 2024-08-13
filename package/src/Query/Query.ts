@@ -171,8 +171,7 @@ export class Query<
     const { onSuccess, onError } = options || {};
 
     this.auxiliary
-      .getUnifiedPromise(this.executor)
-      .then((res) => {
+      .getUnifiedPromise(this.executor, (res) => {
         this.submitSuccess(res);
         onSuccess?.(res);
       })
@@ -194,9 +193,7 @@ export class Query<
       return Promise.resolve(this.storage.data as TResult);
     }
 
-    return this.auxiliary
-      .getUnifiedPromise(this.executor)
-      .then(this.submitSuccess);
+    return this.auxiliary.getUnifiedPromise(this.executor, this.submitSuccess);
   };
 
   /**
