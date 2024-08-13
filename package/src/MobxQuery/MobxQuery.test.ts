@@ -7,7 +7,7 @@ const checkLoading = (items: { isLoading: boolean }[]) =>
   items.every((item) => item.isLoading === false);
 
 describe('MobxQuery', () => {
-  vi.useFakeTimers();
+  vi.useFakeTimers({ toFake: ['Date'] });
 
   const createMobx = () => {
     const mobxQuery = new MobxQuery();
@@ -95,6 +95,8 @@ describe('MobxQuery', () => {
     });
 
     it('Квери создаются разные, если создаются с паузой', async () => {
+      vi.setSystemTime('2022-02-10T00:00:00.000Z');
+
       const { mobxQuery } = createMobx();
       const queryA = mobxQuery.createInfiniteQuery(
         ['foo'],
@@ -102,8 +104,8 @@ describe('MobxQuery', () => {
         { fetchPolicy: 'network-only' },
       );
 
-      // эмулируем завершение таймера на удаление квери
-      await vi.advanceTimersToNextTimerAsync();
+      // эмулируем ожидание
+      vi.setSystemTime('2022-02-10T00:01:00.000Z');
 
       const queryB = mobxQuery.createInfiniteQuery(
         ['foo'],
@@ -112,6 +114,26 @@ describe('MobxQuery', () => {
       );
 
       expect(queryA).not.toBe(queryB);
+    });
+
+    it('Квери инвалидируется', async () => {
+      const executorSpy = vi.fn();
+      const { mobxQuery } = createMobx();
+      const query = mobxQuery.createInfiniteQuery(
+        ['foo'],
+        () => {
+          executorSpy();
+
+          return Promise.resolve([]);
+        },
+        { fetchPolicy: 'network-only', enabledAutoFetch: true },
+      );
+
+      await query.async();
+      mobxQuery.invalidate(['foo']);
+      JSON.stringify(query.data);
+      await when(() => !query.isLoading);
+      expect(executorSpy).toBeCalledTimes(2);
     });
   });
 
