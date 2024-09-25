@@ -1,4 +1,4 @@
-import { action, computed, makeObservable, when } from 'mobx';
+import { action, computed, makeObservable, observable, when } from 'mobx';
 
 import type { FetchPolicy, QueryBaseActions, Sync, SyncParams } from '../types';
 import { AuxiliaryQuery } from '../AuxiliaryQuery';
@@ -158,6 +158,7 @@ export class InfiniteQuery<
       sync: action,
       fetchMore: action,
       submitSuccess: action,
+      isEndReached: observable,
     });
   }
 
